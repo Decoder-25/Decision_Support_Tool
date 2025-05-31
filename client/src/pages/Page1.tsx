@@ -1,6 +1,9 @@
+
+import InputFields from "../components/InputFields"
+
 const Page1 =()=>{
     return(
-        <h1>Page1</h1>
+        <><InputFields/></>
     )
 }
 export default Page1
