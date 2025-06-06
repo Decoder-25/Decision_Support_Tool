@@ -1,0 +1,15 @@
+# Ignore Python virtual environment
+venv/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# macOS system files
+.DS_Store
+
+# Logs
+*.log
+
+# Environment variable files (if used later)
+.env
