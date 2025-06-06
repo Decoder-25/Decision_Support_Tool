@@ -8,7 +8,6 @@ import {
   Slider,
   Typography,
   Button,
-  
   OutlinedInput,
   ListItemText,
   Checkbox
