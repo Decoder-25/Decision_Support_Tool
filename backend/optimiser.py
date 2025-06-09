@@ -1,7 +1,7 @@
 from re import sub, match
 from pulp import LpProblem, LpMaximize, LpVariable, lpSum, LpStatus
 
-def optimise_controls(controls, budget):
+def optimise_controls(controls, budget, indirect_budget):
     print("Received controls:", controls)
     print("Budget:", budget)
 
@@ -21,6 +21,7 @@ def optimise_controls(controls, budget):
         try:
             name = c["name"]
             cost = float(c["cost"])
+            ind_cost = float(c["indirect_cost"])
             rr   = float(c["risk_reduction"])
             vn   = make_safe(name)
             var  = LpVariable(vn, cat="Binary")
@@ -29,13 +30,14 @@ def optimise_controls(controls, budget):
                 "name":           name,
                 "var_name":       vn,
                 "cost":           cost,
+                "indirect_cost": ind_cost,
                 "risk_reduction": rr
             })
         except Exception as e:
             print("Skipping invalid control:", c, "Error:", e)
 
     if not clean_controls:
-        return {"selected_controls": [], "total_cost": 0}
+        return {"selected_controls": [], "total_cost": 0, "total_indirect_cost": 0}
 
     # 2) Objective: MAXIMIZE total risk reduction
     prob += lpSum(
@@ -48,6 +50,11 @@ def optimise_controls(controls, budget):
         c["cost"] * x[c["var_name"]]
         for c in clean_controls
     ) <= float(budget), "Total_Budget"
+
+    prob += lpSum(
+        c["indirect_cost"] * x[c["var_name"]] 
+        for c in clean_controls
+    ) <= float(indirect_budget), "Indirect_Cost_Budget"
 
     # 4) Solve
     status = prob.solve()
@@ -64,7 +71,10 @@ def optimise_controls(controls, budget):
         if x[c["var_name"]].varValue == 1
     )
 
+    total_ind_cost = sum(c["indirect_cost"] for c in clean_controls if x[c["var_name"]].varValue == 1)
+
     return {
         "selected_controls": selected,
-        "total_cost": total_cost
+        "total_cost": total_cost,
+        "total_indirect_cost": total_ind_cost
     }
