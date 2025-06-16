@@ -86,14 +86,22 @@ def optimise_controls(request: OptimisationRequest) -> dict:
             G.add_node(v.id, name=v.name)
 
         for edge in graph.edges:
-            required_controls = set(edge.vulnerability.control_ids)
-            is_protected = required_controls.issubset(selected_controls)
+            # Start with full flow
+            flow = edge.default_flow
 
-            if not is_protected:
-                G.add_edge(edge.source, edge.target, capacity=edge.default_flow)
-            else:
-                print(f"Edge ({edge.source} → {edge.target}) blocked by selected controls")
+            for control_id in edge.vulnerability.control_ids:
+                for lvl in clean_levels:
+                    if lvl["control_name"] == control_id and x[lvl["var_name"]].varValue == 1:
+                        # Reduce flow based on risk_reduction (e.g., 0.4 means 40% risk blocked)
+                        flow *= (1 - lvl["risk_reduction"])
 
+            # Clamp to 0 if flow becomes very small
+            flow = max(flow, 0.0)
+
+            # Add edge with reduced capacity
+            G.add_edge(edge.source, edge.target, capacity=flow)
+            print(f"Edge ({edge.source} → {edge.target}) final flow: {flow}")
+            
         source = graph.vertices[0].id
         target = graph.vertices[-1].id
 
