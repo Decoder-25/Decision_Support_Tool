@@ -6,7 +6,5 @@ app = FastAPI()
 
 @app.post("/optimise")
 def optimise(request: OptimisationRequest):
-    # Convert Pydantic models to dicts for processing
-    controls = [c.dict() for c in request.controls]
-    result = optimise_controls(controls, request.budget, request.indirect_budget)
+    result = optimise_controls(request)
     return result
