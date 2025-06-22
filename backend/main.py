@@ -1,10 +1,18 @@
+# backend/main.py
+
 from fastapi import FastAPI
-from models import OptimisationRequest
-from optimiser import optimise_controls
+from backend.routers import scenarios
 
-app = FastAPI()
+app = FastAPI(
+    title="CySecTool Decision Support Backend",
+    description="API for Cybersecurity Investment Optimisation and Scenario Management",
+    version="1.0.0"
+)
 
-@app.post("/optimise")
-def optimise(request: OptimisationRequest):
-    result = optimise_controls(request)
-    return result
+# Include the scenarios router
+app.include_router(scenarios.router)
+
+# Health check route (optional)
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to your CySecTool-inspired backend!"}
