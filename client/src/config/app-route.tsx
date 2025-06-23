@@ -1,4 +1,4 @@
-import Page1 from "../pages/Page1";
+import Page1 from "../pages/HomePage";
 
 const AppRoute = [
     {
