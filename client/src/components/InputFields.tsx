@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Box, Typography, Button } from "@mui/material";
+import { Box, Button } from "@mui/material";
 import SecurityScoreCard from "./SecurityScoreCard";
 import SecurityCard from "./SecurityCard";
 import { OPTIONS } from "../types/optionTypes";
@@ -37,7 +37,6 @@ function SecurityDashboard() {
 
   const [securityScore, setSecurityScore] = useState(0);
 
-  // Function to log all captured values
   const handleAddClick = () => {
     console.log('secureConfig:', secureConfig, 'score:', secureConfigValue);
     console.log('networkSecExt:', networkSecExt, 'score:', networkSecExtValue);
