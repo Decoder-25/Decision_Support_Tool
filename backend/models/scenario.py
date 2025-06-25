@@ -1,19 +1,24 @@
 # backend/models/scenario.py
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field # type: ignore
 from typing import List, Dict, Optional, Any
 
-class Control(BaseModel):
-    id: str                                 # e.g., 'FW' for firewall
-    level: int                              # control level (e.g., 1, 2, 3)
-    level_name: Optional[str] = None        # e.g., 'Basic', 'Advanced'
+class ControlLevel(BaseModel):
+    level: int                     # 0,1,2 …  (0 = “no control”)
+    name: str                      # e.g. “Firewall”, “Patching”
     cost: float
-    ind_cost: float = 0                     # indirect cost (default 0)
-    flow: float = 1                         # effectiveness (default 1)
+    ind_cost: float = 0.0
+    flow: float = 1.0              # Effectiveness (≤1 ⇒ blocks flow)
+
+class ControlGroup(BaseModel):
+    id: str                        # Short code, e.g. “N1”
+    name: str                      # Human label
+    no_control_name: str = "None"  # What to call level 0 in the UI
+    levels: List[ControlLevel]     # Ordered list (must include level 0)
 
 class Vulnerability(BaseModel):
     name: str
-    controls: List[str]                     # list of control IDs that affect this vulnerability
-    adjustment: Dict[str, Dict[str, Any]]   # adjustment for each control id
+    controls: List[str]            # IDs of groups that mitigate
+    adjustment: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
 
 class Edge(BaseModel):
     source: int
@@ -28,10 +33,10 @@ class Vertex(BaseModel):
 
 class Scenario(BaseModel):
     name: str
-    controls: List[Control]
+    control_groups: List[ControlGroup]
     vertices: List[Vertex]
     edges: List[Edge]
-    targets: List[int]                      # target node IDs in the attack graph
+    targets: List[int]
     targets_inclusion: Optional[Dict[int, List[int]]] = Field(default_factory=dict)
 
     # You can add more fields if you want (e.g. description, created_by, etc.)
