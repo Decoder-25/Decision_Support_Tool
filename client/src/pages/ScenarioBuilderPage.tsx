@@ -23,12 +23,8 @@ import type { Vertex } from "../components/VerticesTable";
 import ControlGroupsTable from "../components/ControlGroupsTable";
 import type { ControlGroup } from "../components/ControlGroupsTable";
 
-// Uncomment when you build these
-// import ControlLevelsTable from "../components/ControlLevelsTable";
-// import type { ControlLevel } from "../components/ControlLevelsTable";
-
-// import EdgesTable from "../components/EdgesTable";
-// import type { Edge } from "../components/EdgesTable";
+import ControlLevelsTable from "../components/ControlLevelsTable";
+import type { ControlLevel } from "../components/ControlLevelsTable";
 
 const steps = ["Vertices", "Control groups", "Control levels", "Edges"];
 
@@ -47,7 +43,7 @@ export default function ScenarioBuilderPage() {
   // === Step state ===
   const [vertices, setVertices] = useState<Vertex[]>([]);
   const [controlGroups, setControlGroups] = useState<ControlGroup[]>([]);
-  // const [controlLevels, setControlLevels] = useState<ControlLevel[]>([]);
+  const [controlLevels, setControlLevels] = useState<ControlLevel[]>([]);
   // const [edges, setEdges]               = useState<Edge[]>([]);
 
   const handleNext = () =>
@@ -88,11 +84,10 @@ export default function ScenarioBuilderPage() {
 
         {activeStep === 2 && (
           <Typography align="center" color="textSecondary">
-            {/* <ControlLevelsTable
-              levels={controlLevels}
-              setLevels={setControlLevels}
-            /> */}
-            (Control Levels table goes here)
+            <ControlLevelsTable 
+            controlLevels={controlLevels} 
+            setControlLevels={setControlLevels} 
+            />
           </Typography>
         )}
 
