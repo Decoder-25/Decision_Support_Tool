@@ -1,25 +1,131 @@
-import React, { useState } from "react";
-import Container from "@mui/material/Container";
-import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
-import VerticesTable from "../components/VerticesTable"; // You will create this file next
+// src/pages/ScenarioBuilderPage.tsx
+import { useState } from "react";
 
-function ScenarioBuilderPage() {
-  // Vertices state (array of objects with id and name for now)
-  const [vertices, setVertices] = useState([
-    // Example: { id: 0, name: "start" }
-  ]);
+// MUI Stepper + styling
+import { styled } from "@mui/material/styles";
+import StepConnector, {
+  stepConnectorClasses,
+} from "@mui/material/StepConnector";
+import {
+  Container,
+  Box,
+  Typography,
+  Stepper,
+  Step,
+  StepLabel,
+  Button,
+} from "@mui/material";
+
+// Your tables and their types
+import VerticesTable from "../components/VerticesTable";
+import type { Vertex } from "../components/VerticesTable";
+
+import ControlGroupsTable from "../components/ControlGroupsTable";
+import type { ControlGroup } from "../components/ControlGroupsTable";
+
+// Uncomment when you build these
+// import ControlLevelsTable from "../components/ControlLevelsTable";
+// import type { ControlLevel } from "../components/ControlLevelsTable";
+
+// import EdgesTable from "../components/EdgesTable";
+// import type { Edge } from "../components/EdgesTable";
+
+const steps = ["Vertices", "Control groups", "Control levels", "Edges"];
+
+// Custom connector to add horizontal spacing
+const SpacedConnector = styled(StepConnector)(() => ({
+  [`& .${stepConnectorClasses.line}`]: {
+    borderColor: "#e0e0e0",
+    borderTopWidth: 2,
+    margin: "0 24px",
+  },
+}));
+
+export default function ScenarioBuilderPage() {
+  const [activeStep, setActiveStep] = useState(0);
+
+  // === Step state ===
+  const [vertices, setVertices] = useState<Vertex[]>([]);
+  const [controlGroups, setControlGroups] = useState<ControlGroup[]>([]);
+  // const [controlLevels, setControlLevels] = useState<ControlLevel[]>([]);
+  // const [edges, setEdges]               = useState<Edge[]>([]);
+
+  const handleNext = () =>
+    setActiveStep((prev) => Math.min(prev + 1, steps.length - 1));
+  const handleBack = () =>
+    setActiveStep((prev) => Math.max(prev - 1, 0));
 
   return (
-    <Container maxWidth="md" sx={{ mt: 5 }}>
-      <Typography variant="h4" gutterBottom align="center">
+    <Container maxWidth="md" sx={{ mt: 5, mb: 5 }}>
+      <Typography variant="h4" align="center" gutterBottom>
         Scenario Builder
       </Typography>
+
+      <Stepper
+        activeStep={activeStep}
+        alternativeLabel
+        connector={<SpacedConnector />}
+        sx={{ px: 2 }}
+      >
+        {steps.map((label) => (
+          <Step key={label} sx={{ flex: 1 }}>
+            <StepLabel>{label}</StepLabel>
+          </Step>
+        ))}
+      </Stepper>
+
       <Box sx={{ mt: 4 }}>
-        <VerticesTable vertices={vertices} setVertices={setVertices} />
+        {activeStep === 0 && (
+          <VerticesTable vertices={vertices} setVertices={setVertices} />
+        )}
+
+        {activeStep === 1 && (
+          <ControlGroupsTable
+            controlGroups={controlGroups}
+            setControlGroups={setControlGroups}
+          />
+        )}
+
+        {activeStep === 2 && (
+          <Typography align="center" color="textSecondary">
+            {/* <ControlLevelsTable
+              levels={controlLevels}
+              setLevels={setControlLevels}
+            /> */}
+            (Control Levels table goes here)
+          </Typography>
+        )}
+
+        {activeStep === 3 && (
+          <Typography align="center" color="textSecondary">
+            {/* <EdgesTable edges={edges} setEdges={setEdges} /> */}
+            (Edges table goes here)
+          </Typography>
+        )}
+      </Box>
+
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          mt: 4,
+        }}
+      >
+        <Button
+          variant="outlined"
+          disabled={activeStep === 0}
+          onClick={handleBack}
+        >
+          Back
+        </Button>
+        <Button
+          variant="contained"
+          disabled={activeStep === steps.length - 1}
+          onClick={handleNext}
+        >
+          Next
+        </Button>
       </Box>
     </Container>
   );
 }
-
-export default ScenarioBuilderPage;
