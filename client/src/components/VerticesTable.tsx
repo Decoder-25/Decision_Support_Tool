@@ -1,22 +1,7 @@
-// src/components/VerticesTable.tsx
 import React, { useState, useMemo } from "react";
-import {
-  Box,
-  Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  TextField,
-  Checkbox,
-  IconButton,
-} from "@mui/material";
+import { Box,Typography,Table,TableBody,TableCell,TableContainer,TableHead,TableRow,Paper,TextField,Checkbox,IconButton,} from "@mui/material";
 import { Add, Delete, Edit } from "@mui/icons-material";
 
-/* ---------- Types ---------- */
 export interface Vertex {
   id: number;
   name: string;
@@ -28,7 +13,7 @@ interface Props {
   setVertices: React.Dispatch<React.SetStateAction<Vertex[]>>;
 }
 
-/* ---------- Helper: find the smallest unused non-negative integer ---------- */
+
 const getNextAvailableId = (current: Vertex[]): number => {
   const used = new Set(current.map((v) => v.id));
   let i = 0;
@@ -37,15 +22,11 @@ const getNextAvailableId = (current: Vertex[]): number => {
 };
 
 const VerticesTable: React.FC<Props> = ({ vertices, setVertices }) => {
-  /* add-row local state */
   const [newName, setNewName] = useState<string>("");
   const [newDefaultTarget, setNewDefaultTarget] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-
-  /* next ID is always the lowest free slot */
   const nextId = useMemo(() => getNextAvailableId(vertices), [vertices]);
 
-  /* ---------- handlers ---------- */
   const handleAdd = (): void => {
     if (!newName.trim()) {
       setError("Name is required");
@@ -61,7 +42,6 @@ const VerticesTable: React.FC<Props> = ({ vertices, setVertices }) => {
   };
 
   const handleDelete = (id: number): void => {
-    /* remove, then re-index so IDs are 0,1,2,… again */
     setVertices((prev) => {
       const filtered = prev.filter((v) => v.id !== id).sort((a, b) => a.id - b.id);
       return filtered.map((v, idx) => ({ ...v, id: idx }));
@@ -76,7 +56,7 @@ const VerticesTable: React.FC<Props> = ({ vertices, setVertices }) => {
     );
   };
 
-  /* ---------- render ---------- */
+  
   return (
     <Box sx={{ mb: 6 }}>
       <Typography 

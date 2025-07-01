@@ -1,22 +1,8 @@
-// src/components/ControlGroupsTable.tsx
 import React, { useState, useMemo } from "react";
-import {
-  Box,
-  Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  TextField,
-  IconButton,
-
-} from "@mui/material";
+import {Box,Typography, Table,TableBody,TableCell, TableHead, TableRow, Paper, TextField,IconButton} from "@mui/material";
 import { Add, Delete, Edit } from "@mui/icons-material";
+import {TableContainer} from "@mui/material";
 
-/* ---------- Types ---------- */
 export interface ControlLevel {
   level: number;
   name: string;
@@ -37,19 +23,15 @@ interface Props {
   setControlGroups: React.Dispatch<React.SetStateAction<ControlGroup[]>>;
 }
 
-/* ---------- Component ---------- */
-const ControlGroupsTable: React.FC<Props> = ({
-  controlGroups,
-  setControlGroups,
-}) => {
-  /* add-row state */
+
+const ControlGroupsTable: React.FC<Props> = ({controlGroups,setControlGroups,}) => {
+
   const [newId, setNewId] = useState("");
   const [newName, setNewName] = useState("");
   const [newCount, setNewCount] = useState(1);
   const [newNoName, setNewNoName] = useState("None");
   const [error, setError] = useState("");
 
-  /* next ID – simple string, no auto */
   const idExists = useMemo(
     () => controlGroups.some((g) => g.id.toLowerCase() === newId.toLowerCase()),
     [newId, controlGroups]

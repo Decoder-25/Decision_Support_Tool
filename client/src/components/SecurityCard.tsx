@@ -12,7 +12,7 @@ import {
   Avatar
 } from "@mui/material";
 
-function SecurityCard({ title, value, onChange, icon, options  }) {
+function SecurityCard({ title, value,  icon, options  }) {
   return (
     <Card 
       sx={{ 
@@ -57,7 +57,7 @@ function SecurityCard({ title, value, onChange, icon, options  }) {
           <Select
             value={value}
             label={title}
-            onChange={(e) => onChange(e.target.value)}
+            
             sx={{
               '& .MuiOutlinedInput-root': {
                 backgroundColor: '#f8f9fa',

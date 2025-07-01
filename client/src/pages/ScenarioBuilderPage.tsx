@@ -1,34 +1,18 @@
-// src/pages/ScenarioBuilderPage.tsx
+
 import { useState } from "react";
-
-// MUI Stepper + styling
 import { styled } from "@mui/material/styles";
-import StepConnector, {
-  stepConnectorClasses,
-} from "@mui/material/StepConnector";
-import {
-  Container,
-  Box,
-  Typography,
-  Stepper,
-  Step,
-  StepLabel,
-  Button,
-} from "@mui/material";
-
-// Your tables and their types
+import StepConnector, {stepConnectorClasses,} from "@mui/material/StepConnector";
+import { Container,Box,Typography,Stepper,Step,StepLabel,Button,} from "@mui/material";
 import VerticesTable from "../components/VerticesTable";
 import type { Vertex } from "../components/VerticesTable";
-
 import ControlGroupsTable from "../components/ControlGroupsTable";
 import type { ControlGroup } from "../components/ControlGroupsTable";
-
 import ControlLevelsTable from "../components/ControlLevelsTable";
 import type { ControlLevel } from "../components/ControlLevelsTable";
-
+import EdgesTable from "../components/EdgesTable";
+import type { Edge } from "../types/edgesTablesTypes";
+import { useNavigate } from "react-router-dom"; 
 const steps = ["Vertices", "Control groups", "Control levels", "Edges"];
-
-// Custom connector to add horizontal spacing
 const SpacedConnector = styled(StepConnector)(() => ({
   [`& .${stepConnectorClasses.line}`]: {
     borderColor: "#e0e0e0",
@@ -38,16 +22,25 @@ const SpacedConnector = styled(StepConnector)(() => ({
 }));
 
 export default function ScenarioBuilderPage() {
+    const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
-
-  // === Step state ===
   const [vertices, setVertices] = useState<Vertex[]>([]);
   const [controlGroups, setControlGroups] = useState<ControlGroup[]>([]);
   const [controlLevels, setControlLevels] = useState<ControlLevel[]>([]);
-  // const [edges, setEdges]               = useState<Edge[]>([]);
+  const [edges, setEdges] = useState<Edge[]>([]);
 
-  const handleNext = () =>
-    setActiveStep((prev) => Math.min(prev + 1, steps.length - 1));
+
+  const handleNext = () => {
+    if (activeStep === steps.length - 1) {
+        // Final step — navigate
+        navigate("/page1", {
+          state: { vertices, controlGroups, controlLevels, edges },
+        });
+      } else {
+        setActiveStep((prev) => Math.min(prev + 1, steps.length - 1));
+      }
+  };
+  
   const handleBack = () =>
     setActiveStep((prev) => Math.max(prev - 1, 0));
 
@@ -93,8 +86,12 @@ export default function ScenarioBuilderPage() {
 
         {activeStep === 3 && (
           <Typography align="center" color="textSecondary">
-            {/* <EdgesTable edges={edges} setEdges={setEdges} /> */}
-            (Edges table goes here)
+            <EdgesTable
+            vertices={vertices}
+            controlGroups={controlGroups}
+            edges={edges}
+            setEdges={setEdges}
+            />
           </Typography>
         )}
       </Box>
@@ -114,8 +111,7 @@ export default function ScenarioBuilderPage() {
           Back
         </Button>
         <Button
-          variant="contained"
-          disabled={activeStep === steps.length - 1}
+          variant="contained"  
           onClick={handleNext}
         >
           Next
