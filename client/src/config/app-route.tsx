@@ -1,6 +1,6 @@
 import Page1 from "../pages/HomePage";
 import Page2 from "../pages/ScenarioBuilderPage";
-import Page3 from "../pages/ModelHubPage";
+import Page3 from "../pages/DashBoard";
 
 const AppRoute = [
     {

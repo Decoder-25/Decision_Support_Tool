@@ -2,7 +2,8 @@
 import { useState } from "react";
 import { styled } from "@mui/material/styles";
 import StepConnector, {stepConnectorClasses,} from "@mui/material/StepConnector";
-import { Container,Box,Typography,Stepper,Step,StepLabel,Button,} from "@mui/material";
+import { Container,Box,Typography,Stepper,Step,StepLabel,Button,TextField} from "@mui/material";
+import ModelName from "../components/ModelName";
 import VerticesTable from "../components/VerticesTable";
 import type { Vertex } from "../components/VerticesTable";
 import ControlGroupsTable from "../components/ControlGroupsTable";
@@ -22,7 +23,8 @@ const SpacedConnector = styled(StepConnector)(() => ({
 }));
 
 export default function ScenarioBuilderPage() {
-    const navigate = useNavigate();
+  const [modelName, setModelName] = useState<string>("");
+  const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
   const [vertices, setVertices] = useState<Vertex[]>([]);
   const [controlGroups, setControlGroups] = useState<ControlGroup[]>([]);
@@ -31,12 +33,16 @@ export default function ScenarioBuilderPage() {
 
 
   const handleNext = () => {
+    if (activeStep === 0 && !modelName.trim()) {
+        alert("Please enter a model name before continuing.");
+        return;
+        }
     if (activeStep === steps.length - 1) {
         // Final step — navigate
         console.log({ vertices, controlLevels, controlGroups, edges });
 
-        navigate("/page1", {
-          state: { vertices, controlGroups, controlLevels, edges },
+        navigate("/page3", {
+          state: { modelName, vertices, controlGroups, controlLevels, edges },
         });
       } else {
         setActiveStep((prev) => Math.min(prev + 1, steps.length - 1));
@@ -51,6 +57,16 @@ export default function ScenarioBuilderPage() {
       <Typography variant="h4" align="center" gutterBottom>
         Scenario Builder
       </Typography>
+
+      <Box sx={{ mb: 4, textAlign: "center" }}>
+        <TextField
+            label="Model Name"
+            value={modelName}
+            onChange={e => setModelName(e.target.value)}
+            placeholder="Give your scenario a name"
+            fullWidth
+        />
+        </Box>
 
       <Stepper
         activeStep={activeStep}
