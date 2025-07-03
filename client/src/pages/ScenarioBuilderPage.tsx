@@ -33,6 +33,8 @@ export default function ScenarioBuilderPage() {
   const handleNext = () => {
     if (activeStep === steps.length - 1) {
         // Final step — navigate
+        console.log({ vertices, controlLevels, controlGroups, edges });
+
         navigate("/page1", {
           state: { vertices, controlGroups, controlLevels, edges },
         });

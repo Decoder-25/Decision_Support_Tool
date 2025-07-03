@@ -1,53 +1,171 @@
-import { ReactFlow, Background, BackgroundVariant } from '@xyflow/react';
+import React, { useMemo, useState } from 'react';
+import ReactFlow, {
+  Background,
+  Controls,
+  MiniMap,
+  MarkerType,
+  EdgeLabelRenderer,
+  Position,
+  useNodesState,
+  useEdgesState,
+  type Node,
+  type Edge,
+} from 'reactflow';
+import dagre from '@dagrejs/dagre';
+
 import 'reactflow/dist/style.css';
+import './AttackGraph.css';
 
+import type { Vertex }      from './VerticesTable';
+import type { Edge as Ejs } from '../types/edgesTablesTypes';
 
-const nodeColor = (node) => {
-  switch (node.type) {
-    case 'input':
-      return '#6ede87';
-    case 'output':
-      return '#6865A5';
-    default:
-      return '#ff0072';
-  }
+/* ─────────────────────────  palette  ───────────────────────── */
+const COL_NODE   = '#d1fae5';
+const COL_TARGET = '#fef3c7';
+const COL_LOW    = '#16a34a';
+const COL_WARN   = '#f59e0b';
+const COL_HIGH   = '#dc2626';
+
+const NODE_W = 120, NODE_H = 40;
+const flowColour = (f = 1) => (f <= .05 ? COL_LOW : f <= .2 ? COL_WARN : COL_HIGH);
+
+/* ──────────────  dagre layout helper  ────────────── */
+const runLayout = (nodes: Node[], edges: Edge[]) => {
+  const g = new dagre.graphlib.Graph();
+  g.setGraph({ rankdir: 'TB', ranksep: 80, nodesep: 40 });
+  g.setDefaultEdgeLabel(() => ({}));
+  nodes.forEach(n => g.setNode(n.id, { width: NODE_W, height: NODE_H }));
+  edges.forEach(e => g.setEdge(e.source, e.target));
+  dagre.layout(g);
+  return nodes.map(n => {
+    const { x, y } = g.node(n.id);
+    n.position = { x: x - NODE_W / 2, y: y - NODE_H / 2 };
+    return n;
+  });
 };
-const defaultEdges = [
-  { id: 'e1-2', source: '1', target: '2' },
-  { id: 'e2-3', source: '2', target: '3', animated: true },
-];
- const defaultNodes = [
-  {
-    id: '1',
-    type: 'input',
-    data: { label: 'Input Node' },
-    position: { x: 250, y: 25 },
-    style: { backgroundColor: '#6ede87', color: 'white' },
-  },
- 
-  {
-    id: '2',
-    // you can also pass a React component as a label
-    data: { label: <div>Default Node</div> },
-    position: { x: 100, y: 125 },
-    style: { backgroundColor: '#ff0072', color: 'white' },
-  },
-  {
-    id: '3',
-    type: 'output',
-    data: { label: 'Output Node' },
-    position: { x: 250, y: 250 },
-    style: { backgroundColor: '#6865A5', color: 'white' },
-  },
-];
- 
 
-function AttackGraph() {
+/* ──────────────  custom edge with tooltip  ────────────── */
+const FlowEdge: React.FC<any> = ({
+  sourceX, sourceY, targetX, targetY, markerEnd, data
+}) => {
+  const [hover, setHover] = useState(false);
+
+  const path = `M${sourceX},${sourceY}L${targetX},${targetY}`;
+  const midX = (sourceX + targetX) / 2;
+  const midY = (sourceY + targetY) / 2;
+
+  /* offset tooltip 20 px away in the perpendicular direction */
+  const dx = targetX - sourceX,
+        dy = targetY - sourceY,
+        len = Math.hypot(dx, dy) || 1,
+        off = 20;
+
+  const labelX = midX - dy / len * off;
+  const labelY = midY + dx / len * off;
+
   return (
-    <ReactFlow defaultNodes={defaultNodes} defaultEdges={defaultEdges}>
-      <Background color="#ccc" variant={BackgroundVariant.Dots} />
-    </ReactFlow>
+    <>
+      {/* visible dashed arrow */}
+      <path
+        d={path}
+        stroke={data.colour}
+        strokeWidth={2}
+        fill="none"
+        className="edge-dash"
+        markerEnd={markerEnd}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+      />
+      {/* fat invisible hit‑area */}
+      <path
+        d={path}
+        stroke="transparent"
+        strokeWidth={16}
+        fill="none"
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+      />
+
+      {hover && (
+        <EdgeLabelRenderer>
+          {/* This div is rendered in the HTML overlay, so CSS coordinates work perfectly */}
+          <div
+            className="edge-tooltip"
+            style={{
+              position: 'absolute',
+              pointerEvents: 'none',
+              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+            }}
+          >
+            <b>flow</b>: {data.flow}<br />
+            <b>edge&nbsp;flow</b>: {data.edgeFlow}<br />
+            <b>vulnerability</b>: {data.vuln || '—'}<br />
+            <b>controls</b>: {data.controls || '—'}
+          </div>
+        </EdgeLabelRenderer>
+      )}
+    </>
+  );
+};
+const edgeTypes = { flow: FlowEdge };
+
+/* ──────────────  component  ────────────── */
+interface Props { vertices: Vertex[]; edges: Ejs[] }
+
+export default function AttackGraph({ vertices, edges }: Props) {
+  /* nodes */
+  const rfNodes: Node[] = useMemo(() => vertices.map(v => ({
+    id: v.id.toString(),
+    data: { label: v.name || v.id },
+    position: { x: 0, y: 0 },
+    style: {
+      width: NODE_W, height: NODE_H, borderRadius: 6, border: '1px solid #000',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: 12, background: v.defaultTarget ? COL_TARGET : COL_NODE
+    },
+    sourcePosition: Position.Bottom,
+    targetPosition: Position.Top,
+  })), [vertices]);
+
+  /* edges */
+  const rfEdges: Edge[] = useMemo(() => edges.map((e, i) => {
+    const col = flowColour(e.defaultFlow);
+    return {
+      id: `e${i}`,
+      type: 'flow',
+      source: e.source.toString(),
+      target: e.target.toString(),
+      markerEnd: { type: MarkerType.ArrowClosed, color: col },
+      data: {
+        colour: col,
+        flow: e.defaultFlow ?? '',
+        edgeFlow: e.defaultFlow ?? '',
+        vuln: e.vulnerability?.name ?? '',
+        controls: (e.vulnerability?.controls || []).join(',')
+      }
+    };
+  }), [edges]);
+
+  const initialNodes = useMemo(() => runLayout([...rfNodes], rfEdges), [rfNodes, rfEdges]);
+
+  const [nodes, , onNodesChange] = useNodesState(initialNodes);
+  const [links, , onEdgesChange] = useEdgesState(rfEdges);
+
+  return (
+    <div style={{ height: '100vh', width: '100%' }}>
+      <ReactFlow
+        nodes={nodes}
+        edges={links}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        edgeTypes={edgeTypes}
+        fitView
+        proOptions={{ hideAttribution: true }}
+      >
+        <MiniMap nodeColor={() => COL_NODE} pannable />
+        <Controls position="bottom-left" />
+        <Background variant="lines" gap={24} color="#e5e7eb" />
+      </ReactFlow>
+    </div>
   );
 }
-
-export default AttackGraph;

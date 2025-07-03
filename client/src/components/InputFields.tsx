@@ -35,29 +35,31 @@ function SecurityDashboard() {
         <SecurityScoreCard score={45} />
         <Box>
         
-          {controlGroups.map((group) => {
-          const groupId = group.id;
-          console.log(groupId);
-          
-        // Find matching control levels for this group
-        const options = controlLevels
-          .filter((lvl) => lvl.groupId === groupId)
-          .map((lvl) => ({
-            value: String(lvl.level), // string for Select
-            label: lvl.name,
-          }));
-          console.log("options",options);
-          
-        return (
-          <SecurityCard
-            key={groupId}
-            title={group.name}
-            icon="🛡️"
-            value={  "adsfasd"}          
-            options={options}
-          />
-        );
-      })}
+        {controlGroups &&
+  controlGroups.map((group) => {
+    const groupId = group.id;
+    console.log(groupId);
+
+    // Find matching control levels for this group
+    const options = controlLevels
+      .filter((lvl) => lvl.groupId === groupId)
+      .map((lvl) => ({
+        value: String(lvl.level), // string for Select
+        label: lvl.name,
+      }));
+    console.log("options", options);
+
+    return (
+      <SecurityCard
+        key={groupId}
+        title={group.name}
+        icon="🛡️"
+        value={"adsfasd"} // this should probably come from some state like groupSelections[groupId]
+        options={options}
+      />
+    );
+  })}
+
 
           <Box sx={{ display: 'flex', gap: 4, alignItems: 'flex-start' }}>
             <Box sx={{ width: 200 }}>
