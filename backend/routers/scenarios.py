@@ -6,6 +6,7 @@ from typing import List, Optional
 from bson import ObjectId
 from backend.database import db
 from backend.models.scenario import Scenario
+from backend.models.optimise import OptimiseResponse
 from backend.services.optimiser import optimise_scenario
 
 router = APIRouter(
@@ -66,15 +67,40 @@ def delete_scenario(id: str):
         raise HTTPException(404, detail="Scenario not found")
     return {"message": "Scenario deleted successfully."}
 
-# Optimise a scenario for given budgets
+# ─── Playground optimisation (no DB write) ────────────────────────────────
+class PlaygroundOptimiseRequest(BaseModel):
+    scenario: Scenario
+    budget: float
+    indirect_budget: float
+    targets: Optional[List[int]] = None
+
+@router.post(
+    "/optimise",
+    response_model=OptimiseResponse,
+    summary="Optimise on‑the‑fly (no DB save)"
+)
+def optimise_playground(req: PlaygroundOptimiseRequest):
+    scen = req.scenario.dict()
+    if req.targets is not None:
+        scen["targets"] = req.targets
+    return optimise_scenario(scen, req.budget, req.indirect_budget)
+
+
+# ─── Optimise a saved scenario (DB read, optional target override) ───────
 class OptimiseRequest(BaseModel):
     budget: float
     indirect_budget: float
+    targets: Optional[List[int]] = None
 
-@router.post("/{id}/optimise", response_model=dict)
-def optimise(id: str, body: OptimiseRequest = Body(...)):
+@router.post(
+    "/{id}/optimise",
+    response_model=OptimiseResponse,
+    summary="Optimise a saved scenario"
+)
+def optimise_saved(id: str, body: OptimiseRequest = Body(...)):
     doc = db.scenarios.find_one({"_id": ObjectId(id)})
     if not doc:
-        raise HTTPException(404, detail="Scenario not found")
-    result = optimise_scenario(doc, body.budget, body.indirect_budget)
-    return result
+        raise HTTPException(404, "Scenario not found")
+    if body.targets is not None:
+        doc["targets"] = body.targets
+    return optimise_scenario(doc, body.budget, body.indirect_budget)

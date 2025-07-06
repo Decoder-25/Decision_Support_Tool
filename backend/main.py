@@ -10,22 +10,19 @@ app = FastAPI(
     version="1.0.0"
 )
 origins = [
-    "http://localhost:5173",  # your Vite/React dev server
-    "http://localhost:3000",  # if you ever run at 3000
-    # add production URLs here once deployed
+    "http://localhost:5173", 
+    "http://localhost:3000", 
 ]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,            # <-- you must list the React origin(s)
+    allow_origins=origins,            
     allow_credentials=True,
-    allow_methods=["*"],              # GET, POST, PUT, DELETE, etc
-    allow_headers=["*"],              # Authorization, Content‑Type, etc
+    allow_methods=["*"],              
+    allow_headers=["*"],              
 )
 
-# Include the scenarios router
 app.include_router(scenarios.router)
 
-# Health check route (optional)
 @app.get("/")
 def read_root():
     return {"message": "Welcome to your CySecTool-inspired backend!"}
