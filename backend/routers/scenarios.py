@@ -9,6 +9,10 @@ from backend.models.scenario import Scenario
 from backend.models.optimise import OptimiseResponse
 from backend.services.optimiser import optimise_scenario
 
+
+import logging
+logger = logging.getLogger(__name__)
+
 router = APIRouter(
     prefix="/scenarios",
     tags=["scenarios"]
@@ -80,6 +84,8 @@ class PlaygroundOptimiseRequest(BaseModel):
     summary="Optimise on‑the‑fly (no DB save)"
 )
 def optimise_playground(req: PlaygroundOptimiseRequest):
+    logger.info("Api hit")
+    
     scen = req.scenario.dict()
     if req.targets is not None:
         scen["targets"] = req.targets

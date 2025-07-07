@@ -1,5 +1,4 @@
 // src/components/RightPanelTabs/OptimizerTab.tsx
-
 import React, { useState } from "react";
 import {
   Box,
@@ -21,7 +20,6 @@ import {
 import {
   AttachMoney,
   Savings,
-  Timeline,
   TrendingUp,
   Paid,
   Speed,
@@ -35,115 +33,166 @@ import type { ControlGroup } from "../ControlGroupsTable";
 import type { ControlLevel } from "../ControlLevelsTable";
 import type { Edge as EdgeJson } from "../../types/edgesTablesTypes";
 
-export interface OptimizerResult {
-  totalCost: number;
-  indirectCost: number;
-  maxFlow: number;
-  selectedControls: string[];
+import { playgroundOptimise } from "../api/Optimise";
+
+interface APIOptimiseResponse {
+  status: string;
+  selected_controls: Array<{
+    group_id: string;
+    group_name: string;
+    level: number;
+    level_name: string;
+    cost: number;
+    ind_cost: number;
+    flow: number;
+  }>;
+  total_cost: number;
+  total_indirect_cost: number;
+  max_flow_to_targets: number;
 }
 
 interface OptimizerTabProps {
+  // If you have a saved scenario, pass its ID here:
+  scenarioId?: string;
+
   vertices: Vertex[];
   controlGroups: ControlGroup[];
   controlLevels: ControlLevel[];
   edges: EdgeJson[];
-  result?: OptimizerResult;
-  onOptimise?: (args: {
-    targets: number[];
-    directBudget: number;
-    indirectBudget: number;
-  }) => void;
 }
 
 const OptimizerTab: React.FC<OptimizerTabProps> = ({
+  scenarioId,
   vertices,
-  result,
-  onOptimise,
+  controlGroups,
+  controlLevels,
+  edges,
 }) => {
 
-    //console.log("Vertices from optmizer", vertices);
+    // console.log("Scenario ID:", scenarioId);
+    // console.log("Vertices:", vertices);
+    // console.log("Control Groups:", controlGroups);
+    // console.log("Control Levels:", controlLevels);
+    // console.log("Edges:", edges);
     
-  const [directBudget, setDirectBudget] = useState<number>(0);
-  const [indirectBudget, setIndirectBudget] = useState<number>(0);
+
+  const [directBudget, setDirectBudget] = useState(0);
+  const [indirectBudget, setIndirectBudget] = useState(0);
   const [selectedTargets, setSelectedTargets] = useState<number[]>(
     () => vertices.filter(v => v.defaultTarget).map(v => v.id)
   );
-  
-  
-  // Optional: sync with vertices updates (remove this if you don't want it to reset when vertices change)
-  // useEffect(() => {
-  //   setSelectedTargets(vertices.filter(v => v.defaultTarget).map(v => v.id));
-  // }, [vertices]);
-  
-  const [optimising, setOptimising] = useState<boolean>(false);
+  const [optimising, setOptimising] = useState(false);
+  const [result, setResult] = useState<APIOptimiseResponse | null>(null);
 
-  const handleOptimise = () => {
+  /* ----------------- Optimise button ----------------- */
+  const handleOptimise = async () => {
     setOptimising(true);
-    if (onOptimise) {
-      onOptimise({ targets: selectedTargets, directBudget, indirectBudget });
+
+    /* build exactly the payload the backend expects */
+    const payload = {
+      scenario: {
+        name: "playground",
+        control_groups: controlGroups.map(g => ({
+          id: g.id,
+          name: g.name,
+          no_control_name: g.no_control_name,
+          levels: g.levels.map(l => ({
+            level: l.level,
+            name:  l.name,
+            cost:  l.cost,
+            ind_cost: l.ind_cost,
+            flow:  l.flow,
+          })),
+        })),
+        vertices: vertices.map(v => ({ id: v.id, name: v.name })),
+        edges: edges.map(e => ({
+          source:       e.source,
+          target:       e.target,
+          default_flow: e.default_flow ?? (e as any).defaultFlow ?? 1,
+          vulnerability: {
+            name:       e.vulnerability.name,
+            controls:   e.vulnerability.controls,
+            adjustment: (e.vulnerability as any).adjustment ?? {},
+          },
+          url: e.url,
+        })),
+        targets:           selectedTargets,
+        targets_inclusion: {},
+      },
+
+      /* optimisation parameters */
+      budget:          directBudget,
+      indirect_budget: indirectBudget,
+      targets:         selectedTargets,
+    };
+
+    console.log("▶️  Optimise payload", payload);
+
+    try {
+      const res = await playgroundOptimise(payload);
+      console.log("✅ Optimise response", res);
+      setResult(res);
+    } catch (err) {
+      console.error("❌ Optimise failed", err);
+      // optional: show snackbar / toast to the user
+    } finally {
+      setOptimising(false);
     }
-    setTimeout(() => setOptimising(false), 800);
   };
+
 
   return (
     <Box>
-      
-      {/* Inputs Section */}
-      <Paper
-        elevation={0}
-        sx={{ p: 3, borderRadius: 2, border: '1px solid #e3e8ef', background: '#f9fafb', mb: 3 }}
-      >
+      {/* ─── Inputs ─── */}
+      <Paper sx={{ p: 3, mb: 3, bgcolor: "#f9fafb", border: "1px solid #e3e8ef" }}>
         <Typography
           variant="subtitle1"
-          sx={{ mb: 2, fontWeight: 600, color: '#2563eb', display: 'flex', alignItems: 'center' }}
+          sx={{ mb: 2, display: "flex", alignItems: "center", color: "#2563eb" }}
         >
-          <Settings sx={{ mr: 1 }} />
-          Configuration Inputs
+          <Settings sx={{ mr: 1 }} /> Configuration Inputs
         </Typography>
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
           {/* Direct Budget */}
           <Box>
             <Typography gutterBottom>
-              <AttachMoney sx={{ mr: 0.5, verticalAlign: 'middle' }} />
+              <AttachMoney sx={{ mr: 0.5 }} />
               Direct Budget: {directBudget}
             </Typography>
             <Slider
               value={directBudget}
-              onChange={(_, v) => setDirectBudget(Number(v))}
+              onChange={(_, v) => setDirectBudget(v as number)}
               min={0}
               max={100}
-              step={1}
               valueLabelDisplay="auto"
-              sx={{ color: '#2563eb' }}
+              sx={{ color: "#2563eb" }}
             />
           </Box>
 
           {/* Indirect Budget */}
           <Box>
             <Typography gutterBottom>
-              <Savings sx={{ mr: 0.5, verticalAlign: 'middle' }} />
+              <Savings sx={{ mr: 0.5 }} />
               Indirect Budget: {indirectBudget}
             </Typography>
             <Slider
               value={indirectBudget}
-              onChange={(_, v) => setIndirectBudget(Number(v))}
+              onChange={(_, v) => setIndirectBudget(v as number)}
               min={0}
               max={100}
-              step={1}
               valueLabelDisplay="auto"
-              sx={{ color: '#f59e0b' }}
+              sx={{ color: "#f59e0b" }}
             />
           </Box>
 
-          {/* Targets Multi-Select */}
+          {/* Targets Multi‑Select */}
           <FormControl size="small" sx={{ minWidth: 200 }}>
             <InputLabel>Targets</InputLabel>
             <Select
               multiple
               value={selectedTargets}
               label="Targets"
-              onChange={(e) => setSelectedTargets(e.target.value as number[])}
+              onChange={e => setSelectedTargets(e.target.value as number[])}
             >
               {vertices.map(v => (
                 <MenuItem key={v.id} value={v.id}>
@@ -154,53 +203,63 @@ const OptimizerTab: React.FC<OptimizerTabProps> = ({
           </FormControl>
 
           {/* Optimise Button */}
-          <Box sx={{ textAlign: 'center' }}>
+          <Box sx={{ textAlign: "center" }}>
             <Button
               variant="contained"
-              size="large"
               startIcon={<TrendingUp />}
               onClick={handleOptimise}
               disabled={optimising}
-              sx={{ px: 4, py: 1.5, borderRadius: 2, fontWeight: 'bold', backgroundColor: '#2563eb' }}
+              sx={{ backgroundColor: "#2563eb", fontWeight: "bold" }}
             >
-              {optimising ? 'Optimising...' : 'Optimise'}
+              {optimising ? "Optimising..." : "Optimise"}
             </Button>
           </Box>
         </Box>
       </Paper>
 
-      {/* Results Section */}
+      {/* ─── Results ─── */}
       {result && (
-        <Paper
-          elevation={0}
-          sx={{ p: 3, borderRadius: 2, border: '1px solid #e3e8ef', background: '#fff' }}
-        >
+        <Paper sx={{ p: 3, bgcolor: "#fff", border: "1px solid #e3e8ef" }}>
           <Typography
             variant="h6"
-            sx={{ mb: 2, fontWeight: 700, color: '#059669', display: 'flex', alignItems: 'center' }}
+            sx={{ mb: 2, display: "flex", alignItems: "center", color: "#059669" }}
           >
-            <Security sx={{ mr: 1 }} />
-            Optimizer Result
+            <Security sx={{ mr: 1 }} /> Optimiser Result
           </Typography>
 
-          <Box sx={{ display: 'flex', gap: 3, mb: 2, flexWrap: 'wrap' }}>
-            <Chip icon={<Paid />} label={`Total Cost: ${result.totalCost}`} sx={{ background: '#e0f2fe', color: '#0ea5e9' }} />
-            <Chip icon={<Savings />} label={`Indirect Cost: ${result.indirectCost}`} sx={{ background: '#fef9c3', color: '#ca8a04' }} />
-            <Chip icon={<Speed />} label={`Max Flow: ${result.maxFlow}`} sx={{ background: '#fce7f3', color: '#db2777' }} />
+          <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 2 }}>
+            <Chip
+              icon={<Paid />}
+              label={`Total Cost: ${result.total_cost}`}
+              sx={{ bgcolor: "#e0f2fe", color: "#0ea5e9" }}
+            />
+            <Chip
+              icon={<Savings />}
+              label={`Indirect Cost: ${result.total_indirect_cost}`}
+              sx={{ bgcolor: "#fef9c3", color: "#ca8a04" }}
+            />
+            <Chip
+              icon={<Speed />}
+              label={`Max Flow: ${result.max_flow_to_targets.toFixed(3)}`}
+              sx={{ bgcolor: "#fce7f3", color: "#db2777" }}
+            />
           </Box>
 
           <Divider sx={{ my: 2 }} />
 
-          <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600, display: 'flex', alignItems: 'center' }}>
-            <Shield sx={{ mr: 1 }} />
-            Selected Controls
+          <Typography variant="subtitle1" sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+            <Shield sx={{ mr: 1 }} /> Selected Controls
           </Typography>
-
-          <List dense disablePadding>
-            {result.selectedControls.map(ctrl => (
-              <ListItem key={ctrl} sx={{ pl: 0 }}>
-                <ListItemIcon sx={{ color: '#059669' }}><Shield /></ListItemIcon>
-                <ListItemText primary={ctrl} primaryTypographyProps={{ fontWeight: 500 }} />
+          <List dense>
+            {result.selected_controls.map(ctrl => (
+              <ListItem key={`${ctrl.group_id}-${ctrl.level}`} sx={{ pl: 0 }}>
+                <ListItemIcon sx={{ color: "#059669" }}>
+                  <Shield fontSize="small" />
+                </ListItemIcon>
+                <ListItemText
+                  primary={`${ctrl.group_name} – ${ctrl.level_name}`}
+                  secondary={`Cost: ${ctrl.cost}, Indirect: ${ctrl.ind_cost}, Flow: ${ctrl.flow}`}
+                />
               </ListItem>
             ))}
           </List>
