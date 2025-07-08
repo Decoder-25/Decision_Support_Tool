@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { styled } from "@mui/material/styles";
 import StepConnector, {stepConnectorClasses,} from "@mui/material/StepConnector";
-import { Container,Box,Typography,Stepper,Step,StepLabel,Button,TextField} from "@mui/material";
+import { Container,Box,Typography,Stepper,Step,StepLabel,Button} from "@mui/material";
 import ModelName from "../components/ModelName";
 import VerticesTable from "../components/VerticesTable";
 import type { Vertex } from "../components/VerticesTable";
@@ -58,15 +58,8 @@ export default function ScenarioBuilderPage() {
         Scenario Builder
       </Typography>
 
-      <Box sx={{ mb: 4, textAlign: "center" }}>
-        <TextField
-            label="Model Name"
-            value={modelName}
-            onChange={e => setModelName(e.target.value)}
-            placeholder="Give your scenario a name"
-            fullWidth
-        />
-        </Box>
+      <ModelName modelName={modelName} onModelNameChange={setModelName} />
+
 
       <Stepper
         activeStep={activeStep}

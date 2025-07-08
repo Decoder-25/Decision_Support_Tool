@@ -1,5 +1,5 @@
 // src/components/RightPanelTabs/OptimizerTab.tsx
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Box,
   Paper,
@@ -54,12 +54,12 @@ interface APIOptimiseResponse {
 interface OptimizerTabProps {
   // If you have a saved scenario, pass its ID here:
   scenarioId?: string;
-
   vertices: Vertex[];
   controlGroups: ControlGroup[];
   controlLevels: ControlLevel[];
   edges: EdgeJson[];
 }
+
 
 const OptimizerTab: React.FC<OptimizerTabProps> = ({
   scenarioId,
@@ -71,9 +71,28 @@ const OptimizerTab: React.FC<OptimizerTabProps> = ({
 
     // console.log("Scenario ID:", scenarioId);
     // console.log("Vertices:", vertices);
-    // console.log("Control Groups:", controlGroups);
-    // console.log("Control Levels:", controlLevels);
+   //console.log("Control Groups:", controlGroups);
+    console.log("Control Levels:", controlLevels);
     // console.log("Edges:", edges);
+
+    const maxDirectBudget = useMemo(() => {
+        // group levels by groupId, then sum each group’s max cost
+        const byGroup = controlLevels.reduce<Record<string, number>>((acc, lvl) => {
+          acc[lvl.groupId] = Math.max(acc[lvl.groupId] || 0, lvl.cost);
+          return acc;
+        }, {});
+        return Object.values(byGroup).reduce((sum, c) => sum + c, 0);
+      }, [controlLevels]);
+      
+      const maxIndirectBudget = useMemo(() => {
+        const byGroup = controlLevels.reduce<Record<string, number>>((acc, lvl) => {
+          acc[lvl.groupId] = Math.max(acc[lvl.groupId] || 0, lvl.indCost);
+          return acc;
+        }, {});
+        return Object.values(byGroup).reduce((sum, c) => sum + c, 0);
+      }, [controlLevels]);
+      
+      
     
 
   const [directBudget, setDirectBudget] = useState(0);
@@ -87,44 +106,56 @@ const OptimizerTab: React.FC<OptimizerTabProps> = ({
   /* ----------------- Optimise button ----------------- */
   const handleOptimise = async () => {
     setOptimising(true);
-
+    console.log(controlLevels);
     /* build exactly the payload the backend expects */
     const payload = {
-      scenario: {
-        name: "playground",
-        control_groups: controlGroups.map(g => ({
-          id: g.id,
-          name: g.name,
-          no_control_name: g.no_control_name,
-          levels: g.levels.map(l => ({
-            level: l.level,
-            name:  l.name,
-            cost:  l.cost,
-            ind_cost: l.ind_cost,
-            flow:  l.flow,
+        scenario: {
+          name: "playground",
+      
+          /* attach the right levels to each group */
+          control_groups: controlGroups.map(g => ({
+            id: g.id,
+            name: g.name,
+            no_control_name: g.no_control_name,
+      
+            /* pick ONLY the levels that belong to this group */
+            levels: controlLevels
+              .filter(l => l.groupId === g.id)   // ◀─ match on id
+              .map(l => ({
+                level:    l.level,
+                name:     l.name,
+                cost:     l.cost,
+                ind_cost: l.indCost,
+                flow:     l.flow
+              }))
           })),
-        })),
-        vertices: vertices.map(v => ({ id: v.id, name: v.name })),
-        edges: edges.map(e => ({
-          source:       e.source,
-          target:       e.target,
-          default_flow: e.default_flow ?? (e as any).defaultFlow ?? 1,
-          vulnerability: {
-            name:       e.vulnerability.name,
-            controls:   e.vulnerability.controls,
-            adjustment: (e.vulnerability as any).adjustment ?? {},
-          },
-          url: e.url,
-        })),
-        targets:           selectedTargets,
-        targets_inclusion: {},
-      },
-
-      /* optimisation parameters */
-      budget:          directBudget,
-      indirect_budget: indirectBudget,
-      targets:         selectedTargets,
-    };
+      
+          vertices: vertices.map(v => ({ id: v.id, name: v.name })),
+      
+          edges: edges.map(e => ({
+            source:       e.source,
+            target:       e.target,
+            default_flow: e.defaultFlow ?? (e as any).defaultFlow ?? 1,
+            vulnerability: {
+              name:       e.vulnerability.name,
+              controls:   e.vulnerability.controls,   // ["c1", "c2", …]
+              adjustment: (e.vulnerability as any).adjustment ?? {}
+            },
+            url: e.url
+          })),
+      
+          targets:           selectedTargets,
+          targets_inclusion: {}
+        },
+      
+        /* optimisation parameters */
+        budget:          directBudget,
+        indirect_budget: indirectBudget,
+        targets:         selectedTargets
+      };
+      console.log(payload);
+      
+    setOptimising(false);
 
     console.log("▶️  Optimise payload", payload);
 
@@ -163,7 +194,8 @@ const OptimizerTab: React.FC<OptimizerTabProps> = ({
               value={directBudget}
               onChange={(_, v) => setDirectBudget(v as number)}
               min={0}
-              max={100}
+              max={maxDirectBudget}
+              step={1}
               valueLabelDisplay="auto"
               sx={{ color: "#2563eb" }}
             />
@@ -179,7 +211,8 @@ const OptimizerTab: React.FC<OptimizerTabProps> = ({
               value={indirectBudget}
               onChange={(_, v) => setIndirectBudget(v as number)}
               min={0}
-              max={100}
+              max={maxIndirectBudget}
+              step={1}
               valueLabelDisplay="auto"
               sx={{ color: "#f59e0b" }}
             />
@@ -208,7 +241,7 @@ const OptimizerTab: React.FC<OptimizerTabProps> = ({
               variant="contained"
               startIcon={<TrendingUp />}
               onClick={handleOptimise}
-              disabled={optimising}
+              disabled={false}
               sx={{ backgroundColor: "#2563eb", fontWeight: "bold" }}
             >
               {optimising ? "Optimising..." : "Optimise"}
