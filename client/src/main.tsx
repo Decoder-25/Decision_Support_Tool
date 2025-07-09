@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import AppRoute from './config/app-route'
 import {BrowserRouter, useRoutes } from 'react-router-dom'
+import { ScenarioBuilderProvider } from "./context/ScenarioBuilderContext";
 
 
 function App()
@@ -12,10 +13,12 @@ function App()
 }
 
 createRoot(document.getElementById('root')!).render(
-  <BrowserRouter>
   <StrictMode>
-    <App />
-  </StrictMode>
-  </BrowserRouter>
+  <ScenarioBuilderProvider>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </ScenarioBuilderProvider>
+</StrictMode>
   
 )

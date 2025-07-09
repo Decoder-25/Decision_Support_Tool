@@ -31,13 +31,14 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import ModelName from "../components/ModelName";
 import VerticesTable from "../components/VerticesTable";
-import type { Vertex } from "../components/VerticesTable";
+
 import ControlGroupsTable from "../components/ControlGroupsTable";
-import type { ControlGroup } from "../components/ControlGroupsTable";
+
 import ControlLevelsTable from "../components/ControlLevelsTable";
-import type { ControlLevel } from "../components/ControlLevelsTable";
+
 import EdgesTable from "../components/EdgesTable";
-import type { Edge } from "../types/edgesTablesTypes";
+
+import { useScenarioBuilder } from "../context/ScenarioBuilderContext";
 
 const PRIMARY_BLUE = "#3B71CA";
 
@@ -170,12 +171,15 @@ const StepContent = styled(Box)(() => ({
 
 export default function ScenarioBuilderPage() {
   const navigate = useNavigate();
-  const [activeStep, setActiveStep] = useState(0);
-  const [modelName, setModelName] = useState("");
-  const [vertices, setVertices] = useState<Vertex[]>([]);
-  const [controlGroups, setControlGroups] = useState<ControlGroup[]>([]);
-  const [controlLevels, setControlLevels] = useState<ControlLevel[]>([]);
-  const [edges, setEdges] = useState<Edge[]>([]);
+   const {
+        activeStep, setActiveStep,
+        modelName, setModelName,
+        vertices, setVertices,
+        controlGroups, setControlGroups,
+        controlLevels, setControlLevels,
+        edges, setEdges,
+      } = useScenarioBuilder();
+    
 
   const [toastOpen, setToastOpen] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
