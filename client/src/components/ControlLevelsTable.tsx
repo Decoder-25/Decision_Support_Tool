@@ -12,64 +12,90 @@ import {
   Paper,
   TextField,
   IconButton,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
-import { Add, Delete, Edit } from "@mui/icons-material";
+import { Add, Delete, Edit, Check, Close } from "@mui/icons-material";
+import type { ControlGroup } from "./ControlGroupsTable";
 
 export interface ControlLevel {
-  groupId: string;   // e.g. "N1"
-  level: number;     // e.g. 0,1,2…
-  name: string;      // e.g. "firewall"
+  groupId: string;
+  level: number;
+  name: string;
   cost: number;
   indCost: number;
   flow: number;
 }
 
 interface Props {
+  controlGroups: ControlGroup[];
   controlLevels: ControlLevel[];
   setControlLevels: React.Dispatch<React.SetStateAction<ControlLevel[]>>;
 }
 
-/**
- * Find the next level number for a given groupId
- */
-const getNextLevel = (
-  levels: ControlLevel[],
-  groupId: string
-): number => {
-  const existing = levels.filter((l) => l.groupId === groupId);
-  if (existing.length === 0) return 1;
-  return Math.max(...existing.map((l) => l.level)) + 1;
-};
-
 const ControlLevelsTable: React.FC<Props> = ({
+  controlGroups,
   controlLevels,
   setControlLevels,
 }) => {
-  /* add-row state */
+  // ─── Add-row state ───
   const [newGroup, setNewGroup] = useState("");
   const [newName, setNewName] = useState("");
-  const [newCost, setNewCost] = useState<number>(0);
-  const [newIndCost, setNewIndCost] = useState<number>(0);
-  const [newFlow, setNewFlow] = useState<number>(1);
+  const [newCost, setNewCost] = useState(0);
+  const [newIndCost, setNewIndCost] = useState(0);
+  const [newFlow, setNewFlow] = useState(1);
   const [error, setError] = useState("");
 
-  /* compute next level number when group changes */
-  const newLevel = useMemo(
-    () => (newGroup.trim() ? getNextLevel(controlLevels, newGroup.trim()) : 1),
-    [newGroup, controlLevels]
-  );
+  // ─── Edit-row state ───
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [editGroup, setEditGroup] = useState("");
+  const [editName, setEditName] = useState("");
+  const [editCost, setEditCost] = useState(0);
+  const [editIndCost, setEditIndCost] = useState(0);
+  const [editFlow, setEditFlow] = useState(1);
 
-  /* add handler */
+  // ─── Compute declared count & nextLevel for Add ───
+  const { nextLevel } = useMemo(() => {
+    const groupDef = controlGroups.find((g) => g.id === newGroup);
+    const count = groupDef?.levels.length ?? 0;
+    const all = Array.from({ length: count }, (_, i) => i + 1);
+    const used = controlLevels
+      .filter((l) => l.groupId === newGroup)
+      .map((l) => l.level);
+    const avail = all.filter((lvl) => !used.includes(lvl));
+    return { nextLevel: avail[0] };
+  }, [newGroup, controlGroups, controlLevels]);
+
+  // ─── Compute editLevel for Edit ───
+  const editLevel = useMemo(() => {
+    if (editIndex === null) return undefined;
+    const groupDef = controlGroups.find((g) => g.id === editGroup);
+    const count = groupDef?.levels.length ?? 0;
+    const all = Array.from({ length: count }, (_, i) => i + 1);
+    const used = controlLevels
+      .filter((_, i) => i !== editIndex && controlLevels[i].groupId === editGroup)
+      .map((l) => l.level);
+    const avail = all.filter((lvl) => !used.includes(lvl));
+    return avail[0];
+  }, [editGroup, editIndex, controlGroups, controlLevels]);
+
+  // ─── Handlers ───
   const handleAdd = () => {
-    if (!newGroup.trim() || !newName.trim()) {
-      setError("Group ID and Name are required");
+    if (!newGroup || !newName.trim()) {
+      setError("Group & Name required");
+      return;
+    }
+    if (nextLevel === undefined) {
+      setError(`All levels for “${newGroup}” added.`);
       return;
     }
     setControlLevels([
       ...controlLevels,
       {
-        groupId: newGroup.trim(),
-        level: newLevel,
+        groupId: newGroup,
+        level: nextLevel,
         name: newName.trim(),
         cost: newCost,
         indCost: newIndCost,
@@ -84,9 +110,47 @@ const ControlLevelsTable: React.FC<Props> = ({
     setError("");
   };
 
-  /* delete handler */
   const handleDelete = (idx: number) => {
     setControlLevels(controlLevels.filter((_, i) => i !== idx));
+    if (editIndex === idx) setEditIndex(null);
+  };
+
+  const startEdit = (idx: number) => {
+    const lvl = controlLevels[idx];
+    setEditIndex(idx);
+    setEditGroup(lvl.groupId);
+    setEditName(lvl.name);
+    setEditCost(lvl.cost);
+    setEditIndCost(lvl.indCost);
+    setEditFlow(lvl.flow);
+    setError("");
+  };
+
+  const handleSave = (idx: number) => {
+    if (!editGroup || !editName.trim()) {
+      setError("Group & Name required");
+      return;
+    }
+    if (editLevel === undefined) {
+      setError(`All levels for “${editGroup}” used.`);
+      return;
+    }
+    const updated: ControlLevel = {
+      groupId: editGroup,
+      level: editLevel,
+      name: editName.trim(),
+      cost: editCost,
+      indCost: editIndCost,
+      flow: editFlow,
+    };
+    setControlLevels(controlLevels.map((l, i) => (i === idx ? updated : l)));
+    setEditIndex(null);
+    setError("");
+  };
+
+  const handleCancel = () => {
+    setEditIndex(null);
+    setError("");
   };
 
   return (
@@ -113,7 +177,7 @@ const ControlLevelsTable: React.FC<Props> = ({
           <TableHead>
             <TableRow sx={{ backgroundColor: "#f8fafc" }}>
               {[
-                { label: "Group ID", width: 100 },
+                { label: "Group ID", width: 120 },
                 { label: "Level", width: 80 },
                 { label: "Name" },
                 { label: "Cost", width: 80 },
@@ -122,7 +186,6 @@ const ControlLevelsTable: React.FC<Props> = ({
               ].map((col) => (
                 <TableCell
                   key={col.label}
-                  align={col.align as any}
                   sx={{
                     fontWeight: 500,
                     color: "#475569",
@@ -135,18 +198,8 @@ const ControlLevelsTable: React.FC<Props> = ({
                   {col.label}
                 </TableCell>
               ))}
-              <TableCell
-                sx={{
-                  fontWeight: 500,
-                  width: 90,
-                  color: "#475569",
-                  fontSize: "0.875rem",
-                  borderBottom: "1px solid #e2e8f0",
-                  py: 2,
-                }}
-                align="center"
-              >
-                <Add sx={{ color: "#3b82f6", fontSize: "1.5rem" }} />
+              <TableCell align="center" sx={{ width: 90 }}>
+                <Add sx={{ color: "#3b82f6", fontSize: 20 }} />
               </TableCell>
             </TableRow>
           </TableHead>
@@ -160,122 +213,115 @@ const ControlLevelsTable: React.FC<Props> = ({
                 "&:hover": { backgroundColor: "#e0f2fe" },
               }}
             >
+              {/* Group ID */}
               <TableCell>
-                <TextField
-                  value={newGroup}
-                  onChange={(e) => setNewGroup(e.target.value)}
-                  size="small"
-                  placeholder="Group ID"
-                  sx={{
-                    backgroundColor: "#ffffff",
-                    borderRadius: "8px",
-                    width: "120px",
-                  }}
-                />
+                <FormControl fullWidth size="small">
+                  <InputLabel>Group ID</InputLabel>
+                  <Select
+                    value={newGroup}
+                    label="Group ID"
+                    onChange={(e) => setNewGroup(e.target.value as string)}
+                  >
+                    {controlGroups.map((g) => (
+                      <MenuItem key={g.id} value={g.id}>
+                        {g.id}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               </TableCell>
+
+              {/* Level */}
               <TableCell>
                 <TextField
-                  value={newLevel}
+                  size="small"
                   disabled
-                  size="small"
-                  sx={{
-                    backgroundColor: "#ffffff",
-                    borderRadius: "8px",
-                    width: 60,
-                  }}
+                  value={nextLevel ?? ""}
+                  placeholder={nextLevel === undefined ? "—" : undefined}
+                  sx={{ width: "100%" }}
                 />
               </TableCell>
+
+              {/* Name */}
               <TableCell>
                 <TextField
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
                   fullWidth
                   size="small"
                   placeholder="Name"
-                  sx={{
-                    backgroundColor: "#ffffff",
-                    borderRadius: "8px",
-                  }}
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
                 />
               </TableCell>
+
+              {/* Cost */}
               <TableCell>
                 <TextField
+                  size="small"
+                  type="number"
                   value={newCost}
-                  onChange={(e) => setNewCost(Number(e.target.value))}
-                  size="small"
-                  type="number"
-                  sx={{
-                    backgroundColor: "#ffffff",
-                    borderRadius: "8px",
-                    width: 70,
-                  }}
+                  onChange={(e) => setNewCost(+e.target.value)}
                 />
               </TableCell>
+
+              {/* Indirect cost */}
               <TableCell>
                 <TextField
+                  size="small"
+                  type="number"
                   value={newIndCost}
-                  onChange={(e) => setNewIndCost(Number(e.target.value))}
-                  size="small"
-                  type="number"
-                  sx={{
-                    backgroundColor: "#ffffff",
-                    borderRadius: "8px",
-                    width: 70,
-                  }}
+                  onChange={(e) => setNewIndCost(+e.target.value)}
                 />
               </TableCell>
+
+              {/* Flow */}
               <TableCell>
                 <TextField
-                  value={newFlow}
-                  onChange={(e) => setNewFlow(Number(e.target.value))}
                   size="small"
                   type="number"
                   inputProps={{ step: 0.01, min: 0, max: 1 }}
-                  sx={{
-                    backgroundColor: "#ffffff",
-                    borderRadius: "8px",
-                    width: 80,
-                  }}
+                  value={newFlow}
+                  onChange={(e) => setNewFlow(+e.target.value)}
                 />
               </TableCell>
+
+              {/* Add button */}
               <TableCell align="center">
                 <IconButton
                   onClick={handleAdd}
-                  sx={{
-                    color: "#3b82f6",
-                    backgroundColor: "rgba(59, 130, 246, 0.08)",
-                    "&:hover": {
-                      backgroundColor: "rgba(59, 130, 246, 0.16)",
-                      transform: "scale(1.05)",
-                    },
-                    transition: "all 0.2s ease-in-out",
-                  }}
+                  disabled={!newGroup || nextLevel === undefined}
+                  sx={{ color: "#3b82f6" }}
                 >
                   <Add />
                 </IconButton>
               </TableCell>
             </TableRow>
 
+            {/* ── Error or “all done” note ── */}
             {error && (
               <TableRow>
                 <TableCell colSpan={7} sx={{ py: 1 }}>
-                  <Typography color="error" variant="caption" sx={{ pl: 1 }}>
+                  <Typography color="error" variant="caption">
                     {error}
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            )}
+            {!error && newGroup && nextLevel === undefined && (
+              <TableRow>
+                <TableCell colSpan={7} sx={{ py: 1 }}>
+                  <Typography color="text.secondary" variant="body2">
+                    👍 All levels for “{newGroup}” added.
                   </Typography>
                 </TableCell>
               </TableRow>
             )}
 
             {/* ── Existing rows ── */}
-            {controlLevels
-              .slice()
-              .sort((a, b) => {
-                if (a.groupId === b.groupId) return a.level - b.level;
-                return a.groupId.localeCompare(b.groupId);
-              })
-              .map((lvl, idx) => (
+            {controlLevels.map((lvl, idx) => {
+              const isEditing = editIndex === idx;
+              return (
                 <TableRow
-                  key={`${lvl.groupId}-${lvl.level}`}
+                  key={`${lvl.groupId}-${lvl.level}-${idx}`}
                   sx={{
                     "&:hover": { backgroundColor: "#f8fafc" },
                     "& td": {
@@ -287,45 +333,148 @@ const ControlLevelsTable: React.FC<Props> = ({
                     },
                   }}
                 >
-                  <TableCell sx={{ fontSize: "0.875rem", color: "#64748b" }}>
-                    {lvl.groupId}
+                  {/* Group ID */}
+                  <TableCell>
+                    {isEditing ? (
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Group ID</InputLabel>
+                        <Select
+                          value={editGroup}
+                          label="Group ID"
+                          onChange={(e) =>
+                            setEditGroup(e.target.value as string)
+                          }
+                        >
+                          {controlGroups.map((g) => (
+                            <MenuItem key={g.id} value={g.id}>
+                              {g.id}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    ) : (
+                      <Typography sx={{ color: "#64748b" }}>
+                        {lvl.groupId}
+                      </Typography>
+                    )}
                   </TableCell>
-                  <TableCell sx={{ fontSize: "0.875rem", color: "#64748b" }}>
-                    {lvl.level}
+
+                  {/* Level */}
+                  <TableCell>
+                    <Typography sx={{ color: "#64748b" }}>
+                      {lvl.level}
+                    </Typography>
                   </TableCell>
-                  <TableCell sx={{ fontSize: "0.875rem", color: "#1e293b" }}>
-                    {lvl.name}
+
+                  {/* Name */}
+                  <TableCell>
+                    {isEditing ? (
+                      <TextField
+                        fullWidth
+                        size="small"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                      />
+                    ) : (
+                      <Typography sx={{ color: "#1e293b" }}>
+                        {lvl.name}
+                      </Typography>
+                    )}
                   </TableCell>
-                  <TableCell sx={{ fontSize: "0.875rem", color: "#1e293b" }}>
-                    {lvl.cost}
+
+                  {/* Cost */}
+                  <TableCell>
+                    {isEditing ? (
+                      <TextField
+                        size="small"
+                        type="number"
+                        value={editCost}
+                        onChange={(e) => setEditCost(+e.target.value)}
+                      />
+                    ) : (
+                      <Typography sx={{ color: "#1e293b" }}>
+                        {lvl.cost}
+                      </Typography>
+                    )}
                   </TableCell>
-                  <TableCell sx={{ fontSize: "0.875rem", color: "#1e293b" }}>
-                    {lvl.indCost}
+
+                  {/* Indirect cost */}
+                  <TableCell>
+                    {isEditing ? (
+                      <TextField
+                        size="small"
+                        type="number"
+                        value={editIndCost}
+                        onChange={(e) => setEditIndCost(+e.target.value)}
+                      />
+                    ) : (
+                      <Typography sx={{ color: "#1e293b" }}>
+                        {lvl.indCost}
+                      </Typography>
+                    )}
                   </TableCell>
-                  <TableCell sx={{ fontSize: "0.875rem", color: "#1e293b" }}>
-                    {lvl.flow}
+
+                  {/* Flow */}
+                  <TableCell>
+                    {isEditing ? (
+                      <TextField
+                        size="small"
+                        type="number"
+                        inputProps={{ step: 0.01, min: 0, max: 1 }}
+                        value={editFlow}
+                        onChange={(e) => setEditFlow(+e.target.value)}
+                      />
+                    ) : (
+                      <Typography sx={{ color: "#1e293b" }}>
+                        {lvl.flow}
+                      </Typography>
+                    )}
                   </TableCell>
+
+                  {/* Actions */}
                   <TableCell align="center">
-                    <IconButton disabled sx={{ color: "#cbd5e1", mr: 0.5 }}>
-                      <Edit />
-                    </IconButton>
-                    <IconButton
-                      onClick={() => handleDelete(idx)}
-                      sx={{
-                        color: "#64748b",
-                        "&:hover": {
-                          color: "#ef4444",
-                          backgroundColor: "rgba(239, 68, 68, 0.08)",
-                          transform: "scale(1.05)",
-                        },
-                        transition: "all 0.2s ease-in-out",
-                      }}
-                    >
-                      <Delete />
-                    </IconButton>
+                    {isEditing ? (
+                      <>
+                        <IconButton
+                          onClick={() => handleSave(idx)}
+                          sx={{ color: "#16a34a", mr: 1 }}
+                        >
+                          <Check />
+                        </IconButton>
+                        <IconButton
+                          onClick={handleCancel}
+                          sx={{ color: "#64748b" }}
+                        >
+                          <Close />
+                        </IconButton>
+                      </>
+                    ) : (
+                      <>
+                        <IconButton
+                          onClick={() => startEdit(idx)}
+                          sx={{
+                            color: "#3b82f6",
+                            mr: 1,
+                            "&:hover": { backgroundColor: "rgba(59,130,246,0.08)" },
+                          }}
+                        >
+                          <Edit />
+                        </IconButton>
+                        <IconButton
+                          onClick={() => handleDelete(idx)}
+                          sx={{
+                            color: "#64748b",
+                            "&:hover": { color: "#ef4444" },
+                          }}
+                        >
+                          <Delete />
+                        </IconButton>
+                      </>
+                    )}
                   </TableCell>
                 </TableRow>
-              ))}
+              );
+            })}
           </TableBody>
         </Table>
       </TableContainer>

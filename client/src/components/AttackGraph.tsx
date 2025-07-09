@@ -54,7 +54,7 @@ const FlowEdge: React.FC<any> = ({
   const midX = (sourceX + targetX) / 2;
   const midY = (sourceY + targetY) / 2;
 
-  /* offset tooltip 20 px away in the perpendicular direction */
+  /* offset tooltip 20px away in the perpendicular direction */
   const dx = targetX - sourceX,
         dy = targetY - sourceY,
         len = Math.hypot(dx, dy) || 1,

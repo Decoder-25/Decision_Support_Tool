@@ -1,5 +1,4 @@
 // src/pages/DashboardPage.tsx
-import React from "react";
 import {
   Box,
   Paper,
@@ -13,7 +12,6 @@ import Navbar from "../components/Navbar";
 import DashboardHeader from "../components/DashboardHeader";
 import OverviewBar from "../components/OverviewBar";
 import AttackGraph from "../components/AttackGraph";
-// import InputFields from "../components/InputFields";  // no longer needed
 import ControlTabs from "../components/RightPanelTabs/ControlsTabs";
 import Footer from "../components/Footer";
 
