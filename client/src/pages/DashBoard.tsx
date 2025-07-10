@@ -4,7 +4,8 @@ import {
   Paper,
   Divider,
   Chip,
-  Typography
+  Typography,
+  Toolbar,
 } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -97,6 +98,7 @@ export default function DashboardPage() {
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
       <Navbar />
+      <Toolbar/>
 
       <DashboardHeader />
 

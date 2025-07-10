@@ -1,79 +1,127 @@
-// src/components/Navbar.tsx
-
-import { AppBar, Toolbar, Button, Box } from "@mui/material";
+import { useEffect, useState } from "react";
+import { AppBar, Toolbar, Button, Box, alpha } from "@mui/material";
 import { Link, useLocation } from "react-router-dom";
+
+const LINKS = [
+  { label: "Home", path: "/page1" },
+  { label: "Models", path: "/page1" },
+  { label: "Builder", path: "/page2" },
+  { label: "Dashboard", path: "/page3" },
+];
 
 export default function Navbar() {
   const { pathname } = useLocation();
+  const onHome = pathname === "/page1";
 
-  // Map each label to its path
-  const tabs = [
-    { label: "Home", path: "/page1" },
-    { label: "Models", path: "/page1" },      
-    { label: "Builder", path: "/page2" },
-    { label: "Dashboard", path: "/page3" },
-  ];
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    if (!onHome) return;
+    const handle = () => setScrolled(window.scrollY > 64);
+    window.addEventListener("scroll", handle);
+    return () => window.removeEventListener("scroll", handle);
+  }, [onHome]);
+
+  // Bar styling
+  const barTransparent = onHome && !scrolled;
+  const barBg = barTransparent ? "transparent" : "#ffffff";
+  const barClr = barTransparent ? "#fff"       : "#1e1e1e";
+
+  // Text colors
+  const textActiveColor = barTransparent ? "#fff" : "#1e1e1e";
+  const textInactiveColor = barTransparent
+    ? alpha("#ffffff", 0.7)
+    : "#666666";
 
   return (
-    <AppBar 
-      position="sticky" 
+    <AppBar
+      position="fixed"
       elevation={0}
       sx={{
-        backgroundColor: "rgba(255, 255, 255, 0.95)",
-        backdropFilter: "blur(10px)",
-        borderBottom: "1px solid rgba(0, 0, 0, 0.08)",
-        boxShadow: "0 1px 20px rgba(0, 0, 0, 0.04)",
+        background: barBg,
+        color: barClr,
+        boxShadow: barTransparent
+          ? "none"
+          : "0 1px 10px rgba(0,0,0,0.06)",
+        backdropFilter: barTransparent ? "none" : "blur(12px)",
+        transition: "all .25s",
+        zIndex: theme => theme.zIndex.appBar,
       }}
     >
-      <Toolbar
-        sx={{
-          justifyContent: "center",        
-          minHeight: 72,
-          maxWidth: "1200px",
-          mx: "auto",
-          width: "100%",
-        }}
-      >
-        <Box
-          sx={{
-            display: "flex",
-            gap: 4,
-            backgroundColor: "rgba(0, 0, 0, 0.02)",
-            borderRadius: "50px",
-            padding: "8px 32px",
-            border: "1px solid rgba(0, 0, 0, 0.06)",
-            minWidth: "700px",
-            justifyContent: "space-between",
-          }}
-        >
-          {tabs.map((tab) => (
-            <Button
-              key={tab.label}
-              component={Link}
-              to={tab.path}
-              disableRipple
-              sx={{
-                textTransform: "none",
-                px: 3,
-                py: 1.2,
-                borderRadius: "50px",
-                fontWeight: 500,
-                fontSize: "0.95rem",
-                letterSpacing: "0.02em",
-                minWidth: "auto",
-                transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                color: pathname === tab.path ? "#fff" : "rgba(0, 0, 0, 0.7)",
-                backgroundColor: pathname === tab.path ? "#1976d2" : "transparent",
-                "&:hover": {
-                  backgroundColor: pathname === tab.path ? "#1565c0" : "rgba(0, 0, 0, 0.04)",
-                  transform: "translateY(-1px)",
-                  boxShadow: pathname === tab.path ? "0 4px 12px rgba(25, 118, 210, 0.3)" : "none",
-                },
-              }}
-            >
-              {tab.label}
-            </Button>
-          ))}
+      <Toolbar disableGutters sx={{ minHeight: 80, px: 2 }}>
+        <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 4,
+              px: { xs: 3, sm: 4 },
+              py: 1,
+              borderRadius: 40,
+              backdropFilter: "blur(4px)",
+              border: barTransparent
+                ? "1px solid rgba(255,255,255,0.25)"
+                : "1px solid rgba(0,0,0,0.05)",
+              background: barTransparent
+                ? "rgba(0,0,0,0.04)"
+                : "#ffffff",
+              maxWidth: 1200,
+              width: "100%",
+              justifyContent: "center",
+            }}
+          >
+            {LINKS.map(({ label, path }) => {
+              const active = pathname === path;
+              return (
+                <Button
+                  key={label}
+                  component={Link}
+                  to={path}
+                  disableRipple
+                  sx={{
+                    textTransform: "none",
+                    fontWeight: 500,
+                    px: { xs: 2, sm: 3 },
+                    py: 1.2,
+                    minWidth: 110,
+                    borderRadius: 40,
+                    fontSize: "0.95rem",
+
+                    color: active
+                      ? textActiveColor
+                      : textInactiveColor,
+
+                    // pill background
+                    backgroundColor: active
+                      ? barTransparent
+                        ? alpha("#ffffff", 0.20)
+                        : alpha("#000000", 0.04)
+                      : "transparent",
+
+                    // pill border
+                    border: active
+                      ? `1px solid ${
+                          barTransparent
+                            ? alpha("#ffffff", 0.35)
+                            : alpha("#000000", 0.10)
+                        }`
+                      : "none",
+
+                    "&:hover": {
+                      backgroundColor: active
+                        ? barTransparent
+                          ? alpha("#ffffff", 0.25)
+                          : alpha("#000000", 0.06)
+                        : barTransparent
+                        ? alpha("#ffffff", 0.18)
+                        : alpha("#000000", 0.04),
+                    },
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  {label}
+                </Button>
+              );
+            })}
+          </Box>
         </Box>
       </Toolbar>
     </AppBar>

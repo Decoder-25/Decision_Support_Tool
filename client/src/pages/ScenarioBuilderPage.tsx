@@ -15,6 +15,7 @@ import {
   Fade,
   Snackbar,
   Alert, 
+  Toolbar,
 } from "@mui/material";
 import {
   AccountTree,
@@ -229,6 +230,7 @@ export default function ScenarioBuilderPage() {
   return (
     <Container maxWidth="lg" sx={{ mt: 6, mb: 5 }}>
       <Navbar />
+      <Toolbar/>
 
       <Box sx={{ textAlign: "center", mb: 6, mt: 4 }}>
         <Typography
