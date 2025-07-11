@@ -16,6 +16,8 @@ import type { ControlLevel } from "../components/ControlLevelsTable";
 import type { Edge as EdgeJson } from "../types/edgesTablesTypes";
 import { createScenario, updateScenario } from "../api/ScenarioClient";
 import type { Scenario } from "../api/ScenarioClient";
+import { buildControlGroups } from "../utils/buildControlGroups";
+
 
 interface ScenarioState {
   id?: string;
@@ -47,18 +49,7 @@ export default function DashboardPage() {
   const handleSave = async () => {
     const payload: Scenario = {
       name: modelName,
-      control_groups: controlGroups.map((g) => ({
-        id: g.id,
-        name: g.name,
-        no_control_name: g.no_control_name,
-        levels: g.levels.map((l) => ({
-          level: l.level,
-          name: l.name,
-          cost: l.cost,
-          ind_cost: l.ind_cost,
-          flow: l.flow,
-        })),
-      })),
+      control_groups: buildControlGroups(controlGroups, controlLevels),
       vertices: vertices.map((v) => ({ id: v.id, name: v.name })),
       edges: edges.map((e) => ({
         source: e.source,
