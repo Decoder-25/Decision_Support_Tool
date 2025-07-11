@@ -171,7 +171,9 @@ const StepContent = styled(Box)(() => ({
 export default function ScenarioBuilderPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const scenarioId = location.state as string | undefined;
+  interface ScenarioState { id?: string }
+  const scenarioId = (location.state as ScenarioState | null)?.id;
+
 
   const {
     activeStep,

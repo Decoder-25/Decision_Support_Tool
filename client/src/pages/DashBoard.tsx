@@ -85,7 +85,7 @@ export default function DashboardPage() {
   };
   const handleBack = () => {
     navigate("/page2", {
-      state: { modelName, vertices, controlGroups, controlLevels, edges },
+      state: { id: currentId, modelName, vertices, controlGroups, controlLevels, edges },
     });
   };
 

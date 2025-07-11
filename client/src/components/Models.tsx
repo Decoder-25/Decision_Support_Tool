@@ -106,13 +106,13 @@ const Models: FC = () => {
               <CardActions>
                 <Button
                   size="small"
-                  onClick={() => navigate("/page3", { state: s.id })}
+                  onClick={() => navigate("/page3", { state: { id: s.id } })}
                 >
                   Open
                 </Button>
                 <Button
                   size="small"
-                  onClick={() => navigate("/page2", { state: s.id })}
+                  onClick={() => navigate("/page2", { state: { id: s.id } })}
                 >
                   Edit
                 </Button>
