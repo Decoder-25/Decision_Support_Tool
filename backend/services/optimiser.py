@@ -2,6 +2,7 @@
 from typing import Dict, Any, List, Tuple
 from pulp import LpProblem, LpVariable, LpMinimize, LpInteger, lpSum, PULP_CBC_CMD # type: ignore
 import math
+import copy
 
 
 def optimise_scenario(
@@ -9,6 +10,8 @@ def optimise_scenario(
     budget: float,
     indirect_budget: float
 ) -> Dict[str, Any]:
+    
+    scenario = copy.deepcopy(scenario)
     """
     Given a scenario dict (with control_groups) and budget constraints,
     find the optimal set of controls to minimise max flow to targets.
