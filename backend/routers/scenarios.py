@@ -29,8 +29,11 @@ def doc_to_scenario(doc) -> Scenario:
 @router.post("/", response_model=dict)
 def create_scenario(scenario: Scenario):
     doc = scenario.dict()
-    db.scenarios.insert_one(doc)
-    return {"message": "Scenario created successfully."}
+    result = db.scenarios.insert_one(doc)
+    return {
+      "message": "Scenario created successfully.",
+      "id": str(result.inserted_id)
+    }
 
 # List all scenarios (names & ids)
 @router.get("/", response_model=List[dict])

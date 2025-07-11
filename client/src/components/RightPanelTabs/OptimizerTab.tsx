@@ -33,7 +33,7 @@ import type { ControlGroup } from "../ControlGroupsTable";
 import type { ControlLevel } from "../ControlLevelsTable";
 import type { Edge as EdgeJson } from "../../types/edgesTablesTypes";
 
-import { playgroundOptimise } from "../api/Optimise";
+import { playgroundOptimise } from "../../api/Optimise";
 
 interface APIOptimiseResponse {
   status: string;
@@ -60,7 +60,6 @@ interface OptimizerTabProps {
   edges: EdgeJson[];
 }
 
-
 const OptimizerTab: React.FC<OptimizerTabProps> = ({
   scenarioId,
   vertices,
@@ -68,37 +67,33 @@ const OptimizerTab: React.FC<OptimizerTabProps> = ({
   controlLevels,
   edges,
 }) => {
+  // console.log("Scenario ID:", scenarioId);
+  // console.log("Vertices:", vertices);
+  //console.log("Control Groups:", controlGroups);
+  console.log("Control Levels:", controlLevels);
+  // console.log("Edges:", edges);
 
-    // console.log("Scenario ID:", scenarioId);
-    // console.log("Vertices:", vertices);
-   //console.log("Control Groups:", controlGroups);
-    console.log("Control Levels:", controlLevels);
-    // console.log("Edges:", edges);
+  const maxDirectBudget = useMemo(() => {
+    // group levels by groupId, then sum each group’s max cost
+    const byGroup = controlLevels.reduce<Record<string, number>>((acc, lvl) => {
+      acc[lvl.groupId] = Math.max(acc[lvl.groupId] || 0, lvl.cost);
+      return acc;
+    }, {});
+    return Object.values(byGroup).reduce((sum, c) => sum + c, 0);
+  }, [controlLevels]);
 
-    const maxDirectBudget = useMemo(() => {
-        // group levels by groupId, then sum each group’s max cost
-        const byGroup = controlLevels.reduce<Record<string, number>>((acc, lvl) => {
-          acc[lvl.groupId] = Math.max(acc[lvl.groupId] || 0, lvl.cost);
-          return acc;
-        }, {});
-        return Object.values(byGroup).reduce((sum, c) => sum + c, 0);
-      }, [controlLevels]);
-      
-      const maxIndirectBudget = useMemo(() => {
-        const byGroup = controlLevels.reduce<Record<string, number>>((acc, lvl) => {
-          acc[lvl.groupId] = Math.max(acc[lvl.groupId] || 0, lvl.indCost);
-          return acc;
-        }, {});
-        return Object.values(byGroup).reduce((sum, c) => sum + c, 0);
-      }, [controlLevels]);
-      
-      
-    
+  const maxIndirectBudget = useMemo(() => {
+    const byGroup = controlLevels.reduce<Record<string, number>>((acc, lvl) => {
+      acc[lvl.groupId] = Math.max(acc[lvl.groupId] || 0, lvl.indCost);
+      return acc;
+    }, {});
+    return Object.values(byGroup).reduce((sum, c) => sum + c, 0);
+  }, [controlLevels]);
 
   const [directBudget, setDirectBudget] = useState(0);
   const [indirectBudget, setIndirectBudget] = useState(0);
-  const [selectedTargets, setSelectedTargets] = useState<number[]>(
-    () => vertices.filter(v => v.defaultTarget).map(v => v.id)
+  const [selectedTargets, setSelectedTargets] = useState<number[]>(() =>
+    vertices.filter((v) => v.defaultTarget).map((v) => v.id)
   );
   const [optimising, setOptimising] = useState(false);
   const [result, setResult] = useState<APIOptimiseResponse | null>(null);
@@ -109,52 +104,52 @@ const OptimizerTab: React.FC<OptimizerTabProps> = ({
     console.log(controlLevels);
     /* build exactly the payload the backend expects */
     const payload = {
-        scenario: {
-          name: "playground",
-      
-          /* attach the right levels to each group */
-          control_groups: controlGroups.map(g => ({
-            id: g.id,
-            name: g.name,
-            no_control_name: g.no_control_name,
-      
-            /* pick ONLY the levels that belong to this group */
-            levels: controlLevels
-              .filter(l => l.groupId === g.id)   // ◀─ match on id
-              .map(l => ({
-                level:    l.level,
-                name:     l.name,
-                cost:     l.cost,
-                ind_cost: l.indCost,
-                flow:     l.flow
-              }))
-          })),
-      
-          vertices: vertices.map(v => ({ id: v.id, name: v.name })),
-      
-          edges: edges.map(e => ({
-            source:       e.source,
-            target:       e.target,
-            default_flow: e.defaultFlow ?? (e as any).defaultFlow ?? 1,
-            vulnerability: {
-              name:       e.vulnerability.name,
-              controls:   e.vulnerability.controls,   // ["c1", "c2", …]
-              adjustment: (e.vulnerability as any).adjustment ?? {}
-            },
-            url: e.url
-          })),
-      
-          targets:           selectedTargets,
-          targets_inclusion: {}
-        },
-      
-        /* optimisation parameters */
-        budget:          directBudget,
-        indirect_budget: indirectBudget,
-        targets:         selectedTargets
-      };
-      console.log(payload);
-      
+      scenario: {
+        name: "playground",
+
+        /* attach the right levels to each group */
+        control_groups: controlGroups.map((g) => ({
+          id: g.id,
+          name: g.name,
+          no_control_name: g.no_control_name,
+
+          /* pick ONLY the levels that belong to this group */
+          levels: controlLevels
+            .filter((l) => l.groupId === g.id) // ◀─ match on id
+            .map((l) => ({
+              level: l.level,
+              name: l.name,
+              cost: l.cost,
+              ind_cost: l.indCost,
+              flow: l.flow,
+            })),
+        })),
+
+        vertices: vertices.map((v) => ({ id: v.id, name: v.name })),
+
+        edges: edges.map((e) => ({
+          source: e.source,
+          target: e.target,
+          default_flow: e.defaultFlow ?? (e as any).defaultFlow ?? 1,
+          vulnerability: {
+            name: e.vulnerability.name,
+            controls: e.vulnerability.controls, // ["c1", "c2", …]
+            adjustment: (e.vulnerability as any).adjustment ?? {},
+          },
+          url: e.url,
+        })),
+
+        targets: selectedTargets,
+        targets_inclusion: {},
+      },
+
+      /* optimisation parameters */
+      budget: directBudget,
+      indirect_budget: indirectBudget,
+      targets: selectedTargets,
+    };
+    console.log(payload);
+
     setOptimising(false);
 
     console.log("▶️  Optimise payload", payload);
@@ -171,14 +166,20 @@ const OptimizerTab: React.FC<OptimizerTabProps> = ({
     }
   };
 
-
   return (
     <Box>
       {/* ─── Inputs ─── */}
-      <Paper sx={{ p: 3, mb: 3, bgcolor: "#f9fafb", border: "1px solid #e3e8ef" }}>
+      <Paper
+        sx={{ p: 3, mb: 3, bgcolor: "#f9fafb", border: "1px solid #e3e8ef" }}
+      >
         <Typography
           variant="subtitle1"
-          sx={{ mb: 2, display: "flex", alignItems: "center", color: "#2563eb" }}
+          sx={{
+            mb: 2,
+            display: "flex",
+            alignItems: "center",
+            color: "#2563eb",
+          }}
         >
           <Settings sx={{ mr: 1 }} /> Configuration Inputs
         </Typography>
@@ -225,9 +226,9 @@ const OptimizerTab: React.FC<OptimizerTabProps> = ({
               multiple
               value={selectedTargets}
               label="Targets"
-              onChange={e => setSelectedTargets(e.target.value as number[])}
+              onChange={(e) => setSelectedTargets(e.target.value as number[])}
             >
-              {vertices.map(v => (
+              {vertices.map((v) => (
                 <MenuItem key={v.id} value={v.id}>
                   {v.name}
                 </MenuItem>
@@ -255,7 +256,12 @@ const OptimizerTab: React.FC<OptimizerTabProps> = ({
         <Paper sx={{ p: 3, bgcolor: "#fff", border: "1px solid #e3e8ef" }}>
           <Typography
             variant="h6"
-            sx={{ mb: 2, display: "flex", alignItems: "center", color: "#059669" }}
+            sx={{
+              mb: 2,
+              display: "flex",
+              alignItems: "center",
+              color: "#059669",
+            }}
           >
             <Security sx={{ mr: 1 }} /> Optimiser Result
           </Typography>
@@ -280,11 +286,14 @@ const OptimizerTab: React.FC<OptimizerTabProps> = ({
 
           <Divider sx={{ my: 2 }} />
 
-          <Typography variant="subtitle1" sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+          <Typography
+            variant="subtitle1"
+            sx={{ display: "flex", alignItems: "center", mb: 1 }}
+          >
             <Shield sx={{ mr: 1 }} /> Selected Controls
           </Typography>
           <List dense>
-            {result.selected_controls.map(ctrl => (
+            {result.selected_controls.map((ctrl) => (
               <ListItem key={`${ctrl.group_id}-${ctrl.level}`} sx={{ pl: 0 }}>
                 <ListItemIcon sx={{ color: "#059669" }}>
                   <Shield fontSize="small" />

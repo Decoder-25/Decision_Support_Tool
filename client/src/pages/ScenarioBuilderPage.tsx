@@ -14,7 +14,7 @@ import {
   Chip,
   Fade,
   Snackbar,
-  Alert, 
+  Alert,
   Toolbar,
 } from "@mui/material";
 import {
@@ -27,28 +27,28 @@ import {
   CheckCircle,
 } from "@mui/icons-material";
 import type { StepIconProps } from "@mui/material/StepIcon";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 import Navbar from "../components/Navbar";
 import ModelName from "../components/ModelName";
 import VerticesTable from "../components/VerticesTable";
-
 import ControlGroupsTable from "../components/ControlGroupsTable";
-
 import ControlLevelsTable from "../components/ControlLevelsTable";
-
 import EdgesTable from "../components/EdgesTable";
 
 import { useScenarioBuilder } from "../context/ScenarioBuilderContext";
+import { getScenarioById } from "../api/ScenarioClient";
+import type { Scenario } from "../api/ScenarioClient";
 
 const PRIMARY_BLUE = "#3B71CA";
-
 const steps = [
   { label: "Vertices", icon: AccountTree },
   { label: "Control groups", icon: Group },
   { label: "Control levels", icon: Settings },
   { label: "Edges", icon: LinkIcon },
 ];
+
+// ── Styled connectors and icons ─────────────────────────────────────────────
 
 const ModernConnector = styled(StepConnector)(({ theme }) => ({
   [`& .${stepConnectorClasses.line}`]: {
@@ -108,11 +108,7 @@ function ModernStepIcon(props: StepIconProps) {
   if (!IconComponent) return null;
   return (
     <ModernStepIconRoot ownerState={{ completed, active }}>
-      {completed ? (
-        <CheckCircle fontSize="small" />
-      ) : (
-        <IconComponent fontSize="small" />
-      )}
+      {completed ? <CheckCircle fontSize="small" /> : <IconComponent fontSize="small" />}
     </ModernStepIconRoot>
   );
 }
@@ -170,48 +166,91 @@ const StepContent = styled(Box)(() => ({
   justifyContent: "center",
 }));
 
+// ── Page Component ─────────────────────────────────────────────────────────
+
 export default function ScenarioBuilderPage() {
   const navigate = useNavigate();
-   const {
-        activeStep, setActiveStep,
-        modelName, setModelName,
-        vertices, setVertices,
-        controlGroups, setControlGroups,
-        controlLevels, setControlLevels,
-        edges, setEdges,
-      } = useScenarioBuilder();
-    
+  const location = useLocation();
+  const scenarioId = location.state as string | undefined;
 
+  const {
+    activeStep,
+    setActiveStep,
+    modelName,
+    setModelName,
+    vertices,
+    setVertices,
+    controlGroups,
+    setControlGroups,
+    controlLevels,
+    setControlLevels,
+    edges,
+    setEdges,
+  } = useScenarioBuilder();
+
+  const [scenario, setScenario] = useState<Scenario | null>(null);
+  const [loading, setLoading] = useState(false);
   const [toastOpen, setToastOpen] = useState(false);
-  const [toastMsg, setToastMsg] = useState("");
 
-
+  // ── 0) Reset context when there's no scenarioId (fresh create mode)
   useEffect(() => {
-    const maxByGroup = new Map<string, number>();
-    controlGroups.forEach((g) => {
-      maxByGroup.set(g.id, g.levels.length);
-    });
-  
-    setControlLevels((prev) => {
-      const newLevels = prev.filter((lvl) => {
-        const max = maxByGroup.get(lvl.groupId) ?? 0;
-        return lvl.level <= max;
-      });
-  
-      const removed = prev.length - newLevels.length;
-      if (removed > 0) {
-        setToastMsg(
-          `Removed ${removed} control level${removed > 1 ? 's' : ''} because group settings were updated.`
-        );
-        setToastOpen(true);
-        return newLevels;
-      }
-  
-      return prev;
-    });
-  }, [controlGroups]); 
-  
+    if (scenarioId) return;
+    setActiveStep(0);
+    setModelName("");
+    setVertices([]);
+    setControlGroups([]);
+    setControlLevels([]);
+    setEdges([]);
+  }, [scenarioId, setActiveStep, setModelName, setVertices, setControlGroups, setControlLevels, setEdges]);
 
+  // ── 1) Fetch existing scenario when editing
+  useEffect(() => {
+    if (!scenarioId) return;
+    setLoading(true);
+    getScenarioById(scenarioId)
+      .then((data) => setScenario(data))
+      .finally(() => setLoading(false));
+  }, [scenarioId]);
+
+  // ── 2) Seed context once scenario is loaded
+  useEffect(() => {
+    if (!scenario) return;
+    setModelName(scenario.name);
+    setVertices(scenario.vertices);
+    setControlGroups(scenario.control_groups);
+    setControlLevels(
+      scenario.control_groups.flatMap((g) =>
+        g.levels.map((lvl) => ({
+          groupId: g.id,
+          level: lvl.level,
+          name: lvl.name,
+          cost: lvl.cost,
+          indCost: lvl.ind_cost,
+          flow: lvl.flow,
+        }))
+      )
+    );
+    setEdges(
+        scenario.edges.map(e => ({
+          source:      e.source,
+          target:      e.target,
+          defaultFlow: e.default_flow,
+          vulnerability: {
+            name:        e.vulnerability.name,
+            controls:    e.vulnerability.controls,
+            adjustment:  e.vulnerability.adjustment,
+          },
+          url: e.url,
+        }))
+      );
+  }, [scenario, setModelName, setVertices, setControlGroups, setControlLevels, setEdges]);
+
+  // ── 3) Show loading spinner only when fetching
+  if (loading) {
+    return <div>Loading…</div>;
+  }
+
+  // ── Handlers
   const handleNext = () => {
     if (activeStep === 0 && !modelName.trim()) {
       alert("Please enter a model name before continuing.");
@@ -219,7 +258,7 @@ export default function ScenarioBuilderPage() {
     }
     if (activeStep === steps.length - 1) {
       navigate("/page3", {
-        state: { modelName, vertices, controlGroups, controlLevels, edges },
+        state: {  ...(scenarioId ? { id: scenarioId } : {}), modelName, vertices, controlGroups, controlLevels, edges },
       });
     } else {
       setActiveStep((p) => p + 1);
@@ -230,7 +269,7 @@ export default function ScenarioBuilderPage() {
   return (
     <Container maxWidth="lg" sx={{ mt: 6, mb: 5 }}>
       <Navbar />
-      <Toolbar/>
+      <Toolbar />
 
       <Box sx={{ textAlign: "center", mb: 6, mt: 4 }}>
         <Typography
@@ -281,8 +320,7 @@ export default function ScenarioBuilderPage() {
                 "& .MuiStepLabel-label": {
                   mt: 1,
                   fontWeight: activeStep === i ? 600 : 400,
-                  color:
-                    activeStep === i ? PRIMARY_BLUE : "text.secondary",
+                  color: activeStep === i ? PRIMARY_BLUE : "text.secondary",
                   fontSize: "0.95rem",
                 },
               }}
@@ -296,84 +334,31 @@ export default function ScenarioBuilderPage() {
       <StyledPaper elevation={0}>
         <Fade in timeout={500}>
           <StepContent>
-            {activeStep === 0 && (
-              <VerticesTable
-                vertices={vertices}
-                setVertices={setVertices}
-              />
-            )}
-            {activeStep === 1 && (
-              <ControlGroupsTable
-                controlGroups={controlGroups}
-                setControlGroups={setControlGroups}
-              />
-            )}
-            {activeStep === 2 && (
-              <ControlLevelsTable
-              controlGroups={controlGroups}
-                controlLevels={controlLevels}
-                setControlLevels={setControlLevels}
-              />
-            )}
-            {activeStep === 3 && (
-              <EdgesTable
-                vertices={vertices}
-                controlGroups={controlGroups}
-                edges={edges}
-                setEdges={setEdges}
-              />
-            )}
+            {activeStep === 0 && <VerticesTable vertices={vertices} setVertices={setVertices} />}
+            {activeStep === 1 && <ControlGroupsTable controlGroups={controlGroups} setControlGroups={setControlGroups} />}
+            {activeStep === 2 && <ControlLevelsTable controlGroups={controlGroups} controlLevels={controlLevels} setControlLevels={setControlLevels} />}
+            {activeStep === 3 && <EdgesTable vertices={vertices} controlGroups={controlGroups} edges={edges} setEdges={setEdges} />}
           </StepContent>
         </Fade>
       </StyledPaper>
 
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mt: 4,
-        }}
-      >
-        <SecondaryButton
-          disabled={activeStep === 0}
-          startIcon={<ArrowBack />}
-          onClick={handleBack}
-        >
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 4 }}>
+        <SecondaryButton disabled={activeStep === 0} startIcon={<ArrowBack />} onClick={handleBack}>
           Back
         </SecondaryButton>
         <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
           <Typography variant="body2" color="text.secondary">
-            {activeStep === steps.length - 1
-              ? "Ready to finish"
-              : "Continue to next step"}
+            {activeStep === steps.length - 1 ? "Ready to finish" : "Continue to next step"}
           </Typography>
-          <PrimaryButton
-            onClick={handleNext}
-            endIcon={
-              activeStep === steps.length - 1 ? (
-                <CheckCircle />
-              ) : (
-                <ArrowForward />
-              )
-            }
-          >
+          <PrimaryButton onClick={handleNext} endIcon={activeStep === steps.length - 1 ? <CheckCircle /> : <ArrowForward />}>
             {activeStep === steps.length - 1 ? "Finish" : "Next"}
           </PrimaryButton>
         </Box>
       </Box>
-      <Snackbar
-        open={toastOpen}
-        autoHideDuration={4000}
-        onClose={() => setToastOpen(false)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
-          onClose={() => setToastOpen(false)}
-          severity="info"
-          sx={{ width: "100%" }}
-        >
-          {toastMsg}
+
+      <Snackbar open={toastOpen} autoHideDuration={4000} onClose={() => setToastOpen(false)} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
+        <Alert onClose={() => setToastOpen(false)} severity="info" sx={{ width: "100%" }}>
+        Updated!
         </Alert>
       </Snackbar>
     </Container>

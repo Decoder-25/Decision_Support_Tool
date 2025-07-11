@@ -1,13 +1,7 @@
 // src/pages/DashboardPage.tsx
-import {
-  Box,
-  Paper,
-  Divider,
-  Chip,
-  Typography,
-  Toolbar,
-} from "@mui/material";
+import { Box, Paper, Divider, Chip, Typography, Toolbar } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 import Navbar from "../components/Navbar";
 import DashboardHeader from "../components/DashboardHeader";
@@ -20,9 +14,11 @@ import type { Vertex } from "../components/VerticesTable";
 import type { ControlGroup } from "../components/ControlGroupsTable";
 import type { ControlLevel } from "../components/ControlLevelsTable";
 import type { Edge as EdgeJson } from "../types/edgesTablesTypes";
-import { createScenario, type ScenarioPayload } from "../components/api/SaveToDB";
+import { createScenario, updateScenario } from "../api/ScenarioClient";
+import type { Scenario } from "../api/ScenarioClient";
 
 interface ScenarioState {
+  id?: string;
   modelName: string;
   vertices: Vertex[];
   controlGroups: ControlGroup[];
@@ -36,6 +32,7 @@ export default function DashboardPage() {
   const state = (location.state ?? {}) as Partial<ScenarioState>;
 
   const {
+    id: scenarioId,
     modelName = "Untitled Model",
     vertices = [],
     controlGroups = [],
@@ -43,16 +40,18 @@ export default function DashboardPage() {
     edges = [],
   } = state;
 
+  const [currentId, setCurrentId] = useState<string | undefined>(scenarioId);
+
   const lastSaved = new Date().toLocaleDateString();
 
   const handleSave = async () => {
-    const payload: ScenarioPayload = {
+    const payload: Scenario = {
       name: modelName,
-      control_groups: controlGroups.map(g => ({
+      control_groups: controlGroups.map((g) => ({
         id: g.id,
         name: g.name,
         no_control_name: g.no_control_name,
-        levels: g.levels.map(l => ({
+        levels: g.levels.map((l) => ({
           level: l.level,
           name: l.name,
           cost: l.cost,
@@ -60,8 +59,8 @@ export default function DashboardPage() {
           flow: l.flow,
         })),
       })),
-      vertices: vertices.map(v => ({ id: v.id, name: v.name })),
-      edges: edges.map(e => ({
+      vertices: vertices.map((v) => ({ id: v.id, name: v.name })),
+      edges: edges.map((e) => ({
         source: e.source,
         target: e.target,
         default_flow: e.defaultFlow,
@@ -73,32 +72,36 @@ export default function DashboardPage() {
         url: e.url,
       })),
       // 3) use your defaultTarget flags:
-      targets: vertices.filter(v => v.defaultTarget).map(v => v.id),
+      targets: vertices.filter((v) => v.defaultTarget).map((v) => v.id),
       // 4) if you need per‐target inclusion, build it here; otherwise send empty:
       targets_inclusion: {},
     };
     try {
-      console.log("staring to create scenario");
-      
-      const created = await createScenario(payload);
-      console.log("scenario created:", created);
-      
-      
-    } catch (err) {
-      console.error("failed to save scenario:", err);
-      // you might show a toast or dialog here
+    if (currentId) {
+      // EDIT mode
+      await updateScenario(currentId, payload);
+      console.log("Updated", currentId);
+    } else {
+      // CREATE mode — returns new id
+      const res = await createScenario(payload);
+      console.log("Created", res.id);
+      setCurrentId(res.id);
     }
-  
+  } catch (err) {
+    console.error(err);
+  }
     console.log("Payload", payload);
   };
   const handleBack = () => {
-    navigate("/page2", { state: { modelName, vertices, controlGroups, controlLevels, edges } });
+    navigate("/page2", {
+      state: { modelName, vertices, controlGroups, controlLevels, edges },
+    });
   };
 
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
       <Navbar />
-      <Toolbar/>
+      <Toolbar />
 
       <DashboardHeader />
 
@@ -113,23 +116,49 @@ export default function DashboardPage() {
 
       <Box sx={{ flex: 1, display: "flex", bgcolor: "#f0f4f8" }}>
         {/* ── Left column ─────────────────────────── */}
-        <Box sx={{ flex: 1, p: 2, borderRight: "1px solid #e0e0e0", minWidth: 0 }}>
+        <Box
+          sx={{ flex: 1, p: 2, borderRight: "1px solid #e0e0e0", minWidth: 0 }}
+        >
           <Paper
             elevation={0}
-            sx={{ p: 2, mb: 2, backgroundColor: "#fff", borderRadius: 2, border: "1px solid #e3e8ef" }}
+            sx={{
+              p: 2,
+              mb: 2,
+              backgroundColor: "#fff",
+              borderRadius: 2,
+              border: "1px solid #e3e8ef",
+            }}
           >
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-              <Typography variant="h6" sx={{ color: "#1f2937", fontWeight: 600, fontSize: "1.1rem" }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                mb: 1,
+              }}
+            >
+              <Typography
+                variant="h6"
+                sx={{ color: "#1f2937", fontWeight: 600, fontSize: "1.1rem" }}
+              >
                 Attack Graph
               </Typography>
               <Chip
                 label={`${vertices.length} nodes`}
                 size="small"
-                sx={{ backgroundColor: "#e3f2fd", color: "#1565c0", fontWeight: 500, fontSize: "0.75rem" }}
+                sx={{
+                  backgroundColor: "#e3f2fd",
+                  color: "#1565c0",
+                  fontWeight: 500,
+                  fontSize: "0.75rem",
+                }}
               />
             </Box>
             <Divider sx={{ borderColor: "#e3e8ef" }} />
-            <Typography variant="body2" sx={{ color: "#6b7280", mt: 1, fontSize: "0.875rem" }}>
+            <Typography
+              variant="body2"
+              sx={{ color: "#6b7280", mt: 1, fontSize: "0.875rem" }}
+            >
               Visual representation of attack paths and vulnerabilities
             </Typography>
           </Paper>
@@ -141,20 +170,44 @@ export default function DashboardPage() {
         <Box sx={{ flex: 1, p: 2, minWidth: 0 }}>
           <Paper
             elevation={0}
-            sx={{ p: 2, mb: 2, backgroundColor: "#fff", borderRadius: 2, border: "1px solid #e3e8ef" }}
+            sx={{
+              p: 2,
+              mb: 2,
+              backgroundColor: "#fff",
+              borderRadius: 2,
+              border: "1px solid #e3e8ef",
+            }}
           >
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-              <Typography variant="h6" sx={{ color: "#1f2937", fontWeight: 600, fontSize: "1.1rem" }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                mb: 1,
+              }}
+            >
+              <Typography
+                variant="h6"
+                sx={{ color: "#1f2937", fontWeight: 600, fontSize: "1.1rem" }}
+              >
                 Playground
               </Typography>
               <Chip
                 label={`${controlGroups.length} groups`}
                 size="small"
-                sx={{ backgroundColor: "#f3e8ff", color: "#7c3aed", fontWeight: 500, fontSize: "0.75rem" }}
+                sx={{
+                  backgroundColor: "#f3e8ff",
+                  color: "#7c3aed",
+                  fontWeight: 500,
+                  fontSize: "0.75rem",
+                }}
               />
             </Box>
             <Divider sx={{ borderColor: "#e3e8ef" }} />
-            <Typography variant="body2" sx={{ color: "#6b7280", mt: 1, fontSize: "0.875rem" }}>
+            <Typography
+              variant="body2"
+              sx={{ color: "#6b7280", mt: 1, fontSize: "0.875rem" }}
+            >
               Configure security controls and optimization parameters
             </Typography>
           </Paper>
