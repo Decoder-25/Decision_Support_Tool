@@ -34,6 +34,9 @@ import type { ControlLevel } from "../ControlLevelsTable";
 import type { Edge as EdgeJson } from "../../types/edgesTablesTypes";
 
 import { playgroundOptimise } from "../../api/Optimise";
+// add this near the top
+import { buildControlGroups } from "../../utils/buildControlGroups";
+
 
 interface APIOptimiseResponse {
   status: string;
@@ -106,24 +109,7 @@ const OptimizerTab: React.FC<OptimizerTabProps> = ({
     const payload = {
       scenario: {
         name: "playground",
-
-        /* attach the right levels to each group */
-        control_groups: controlGroups.map((g) => ({
-          id: g.id,
-          name: g.name,
-          no_control_name: g.no_control_name,
-
-          /* pick ONLY the levels that belong to this group */
-          levels: controlLevels
-            .filter((l) => l.groupId === g.id) // ◀─ match on id
-            .map((l) => ({
-              level: l.level,
-              name: l.name,
-              cost: l.cost,
-              ind_cost: l.indCost,
-              flow: l.flow,
-            })),
-        })),
+        control_groups: buildControlGroups(controlGroups, controlLevels),
 
         vertices: vertices.map((v) => ({ id: v.id, name: v.name })),
 
