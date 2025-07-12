@@ -259,8 +259,9 @@ export default function ScenarioBuilderPage() {
       return;
     }
     if (activeStep === steps.length - 1) {
+    console.log("👉 Builder navigating to Dashboard with id =", scenarioId);
       navigate("/page3", {
-        state: {  ...(scenarioId ? { id: scenarioId } : {}), modelName, vertices, controlGroups, controlLevels, edges },
+        state: { id: scenarioId, fresh: true },
       });
     } else {
       setActiveStep((p) => p + 1);

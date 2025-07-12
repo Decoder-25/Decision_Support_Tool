@@ -1,7 +1,7 @@
 // src/pages/DashboardPage.tsx
 import { Box, Paper, Divider, Chip, Typography, Toolbar } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import Navbar from "../components/Navbar";
 import DashboardHeader from "../components/DashboardHeader";
@@ -10,42 +10,91 @@ import AttackGraph from "../components/AttackGraph";
 import ControlTabs from "../components/RightPanelTabs/ControlsTabs";
 import Footer from "../components/Footer";
 
-import type { Vertex } from "../components/VerticesTable";
-import type { ControlGroup } from "../components/ControlGroupsTable";
-import type { ControlLevel } from "../components/ControlLevelsTable";
-import type { Edge as EdgeJson } from "../types/edgesTablesTypes";
-import { createScenario, updateScenario } from "../api/ScenarioClient";
-import type { Scenario } from "../api/ScenarioClient";
+
+
 import { buildControlGroups } from "../utils/buildControlGroups";
+import {
+  createScenario,
+  updateScenario,
+  getScenarioById,
+  type Scenario,
+} from "../api/ScenarioClient";
 
-
-interface ScenarioState {
-  id?: string;
-  modelName: string;
-  vertices: Vertex[];
-  controlGroups: ControlGroup[];
-  controlLevels: ControlLevel[];
-  edges: EdgeJson[];
-}
+import { useScenarioBuilder } from "../context/ScenarioBuilderContext";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const state = (location.state ?? {}) as Partial<ScenarioState>;
+  const location = useLocation() as { state?: { id?: string; fresh?: boolean } };
+  const { id: initialId, fresh = false } = location.state ?? {};
+  const [currentId, setCurrentId] = useState<string | undefined>(initialId);
 
+  // builder context
   const {
-    id: scenarioId,
-    modelName = "Untitled Model",
-    vertices = [],
-    controlGroups = [],
-    controlLevels = [],
-    edges = [],
-  } = state;
+    modelName,
+    setModelName, 
+    vertices,
+    setVertices,
+    controlGroups,
+    setControlGroups,
+    controlLevels,
+    setControlLevels,
+    edges,
+    setEdges,
+  } = useScenarioBuilder();
 
-  const [currentId, setCurrentId] = useState<string | undefined>(scenarioId);
+  // load saved scenario when we have an ID
+  useEffect(() => {
+    if (!currentId || fresh) return;
+    getScenarioById(currentId)
+      .then((scen) => {
+        // 1) Name
+        setModelName(scen.name);
 
-  const lastSaved = new Date().toLocaleDateString();
+        // 2) Vertices + defaultTarget from scen.targets
+        setVertices(
+          scen.vertices.map((v) => ({
+            id: v.id,
+            name: v.name,
+            defaultTarget:
+              Array.isArray(scen.targets) && scen.targets.includes(v.id),
+          }))
+        );
 
+        // 3) Control groups
+        setControlGroups(scen.control_groups);
+
+        // 4) Flatten control levels
+        const flatLevels = scen.control_groups.flatMap((grp) =>
+          grp.levels.map((lvl) => ({
+            groupId: grp.id,
+            level: lvl.level,
+            name: lvl.name,
+            cost: lvl.cost,
+            indCost: lvl.ind_cost,
+            flow: lvl.flow,
+          }))
+        );
+        setControlLevels(flatLevels);
+
+        // 5) Edges
+        setEdges(
+          scen.edges.map((e) => ({
+            source: e.source,
+            target: e.target,
+            defaultFlow: e.default_flow,
+            vulnerability: {
+              name: e.vulnerability.name,
+              controls: e.vulnerability.controls,
+              adjustment: e.vulnerability.adjustment || {},
+            },
+            url: e.url,
+          }))
+        );
+      })
+      .catch(console.error);
+  }, [currentId, fresh, setModelName, setVertices, setControlGroups, setControlLevels, setEdges]);
+
+  // Save or update
   const handleSave = async () => {
     const payload: Scenario = {
       name: modelName,
@@ -58,36 +107,39 @@ export default function DashboardPage() {
         vulnerability: {
           name: e.vulnerability.name,
           controls: e.vulnerability.controls,
-          // no adjustment for now, or add if you need it
+          adjustment: e.vulnerability.adjustment || {},
         },
         url: e.url,
       })),
-      // 3) use your defaultTarget flags:
       targets: vertices.filter((v) => v.defaultTarget).map((v) => v.id),
-      // 4) if you need per‐target inclusion, build it here; otherwise send empty:
       targets_inclusion: {},
     };
+
+    
     try {
-    if (currentId) {
-      // EDIT mode
-      await updateScenario(currentId, payload);
-      console.log("Updated", currentId);
-    } else {
-      // CREATE mode — returns new id
-      const res = await createScenario(payload);
-      console.log("Created", res.id);
-      setCurrentId(res.id);
+      if (currentId) {
+        await updateScenario(currentId, payload);
+        console.log("Updated", currentId);
+      } else {
+        const res = await createScenario(payload);
+        setCurrentId(res.id);
+        console.log("Created", res.id);
+      }
+    } catch (err) {
+      console.error("Save failed", err);
     }
-  } catch (err) {
-    console.error(err);
-  }
-    console.log("Payload", payload);
   };
+
+  // Back to Builder, keep id so we continue editing the same scenario
   const handleBack = () => {
     navigate("/page2", {
-      state: { id: currentId, modelName, vertices, controlGroups, controlLevels, edges },
+      state: {
+        id: currentId,
+      },
     });
   };
+
+  const lastSaved = new Date().toLocaleDateString();
 
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
@@ -106,9 +158,14 @@ export default function DashboardPage() {
       </Box>
 
       <Box sx={{ flex: 1, display: "flex", bgcolor: "#f0f4f8" }}>
-        {/* ── Left column ─────────────────────────── */}
+        {/* ── Left column: Attack Graph ─────────────────────────── */}
         <Box
-          sx={{ flex: 1, p: 2, borderRight: "1px solid #e0e0e0", minWidth: 0 }}
+          sx={{
+            flex: 1,
+            p: 2,
+            borderRight: "1px solid #e0e0e0",
+            minWidth: 0,
+          }}
         >
           <Paper
             elevation={0}
@@ -157,7 +214,7 @@ export default function DashboardPage() {
           <AttackGraph vertices={vertices} edges={edges} />
         </Box>
 
-        {/* ── Right column ────────────────────────── */}
+        {/* ── Right column: Playground ────────────────────────── */}
         <Box sx={{ flex: 1, p: 2, minWidth: 0 }}>
           <Paper
             elevation={0}
@@ -203,7 +260,6 @@ export default function DashboardPage() {
             </Typography>
           </Paper>
 
-          {/* ← Here’s your new tabs component! */}
           <ControlTabs
             vertices={vertices}
             controlGroups={controlGroups}
