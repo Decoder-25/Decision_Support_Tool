@@ -1,13 +1,17 @@
 # backend/routers/scenarios.py
 
-from fastapi import APIRouter, HTTPException, Body, Query
-from pydantic import BaseModel
+from fastapi import APIRouter, HTTPException, Body, Query # type: ignore
+from pydantic import BaseModel # type: ignore
 from typing import List, Optional
-from bson import ObjectId
+from bson import ObjectId # type: ignore
 from backend.database import db
 from backend.models.scenario import Scenario
 from backend.models.optimise import OptimiseResponse
 from backend.services.optimiser import optimise_scenario
+from backend.services.pareto import generate_pareto_frontier
+from backend.models.optimise import ParetoFrontierResponse
+from backend.models.optimise import ParetoPoint
+
 
 
 import logging
@@ -73,6 +77,40 @@ def delete_scenario(id: str):
     if result.deleted_count == 0:
         raise HTTPException(404, detail="Scenario not found")
     return {"message": "Scenario deleted successfully."}
+
+
+# ─── Pareto frontier (playground, no DB) ─────────────────────────────
+class PlaygroundParetoRequest(BaseModel):
+    scenario: Scenario
+    max_budget: float
+    max_indirect_budget: float = 0.0
+    points: int = 25     # number of ε steps (default 25)
+
+@router.post(
+    "/pareto",
+    response_model=ParetoFrontierResponse,
+    summary="Generate Pareto frontier on‑the‑fly (no DB write)"
+)
+def pareto_playground(body: PlaygroundParetoRequest):
+    raw_frontier = generate_pareto_frontier(
+        body.scenario.dict(),
+        body.max_budget,
+        body.max_indirect_budget,
+        body.points,
+    )
+
+    # map raw solutions into ParetoPoint shape
+    points: List[ParetoPoint] = []
+    for sol in raw_frontier:
+        points.append(ParetoPoint(
+            cost=sol["total_cost"],
+            indirect_cost=sol["total_indirect_cost"],
+            risk=sol["max_flow_to_targets"],
+            selected_controls=sol["selected_controls"],
+        ))
+
+    return ParetoFrontierResponse(status="ok", frontier=points)
+
 
 # ─── Playground optimisation (no DB write) ────────────────────────────────
 class PlaygroundOptimiseRequest(BaseModel):
