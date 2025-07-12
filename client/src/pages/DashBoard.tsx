@@ -134,7 +134,7 @@ export default function DashboardPage() {
   const handleBack = () => {
     navigate("/page2", {
       state: {
-        id: currentId,
+        id: currentId, fresh
       },
     });
   };

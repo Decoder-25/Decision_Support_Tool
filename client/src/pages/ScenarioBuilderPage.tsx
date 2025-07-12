@@ -170,9 +170,9 @@ const StepContent = styled(Box)(() => ({
 
 export default function ScenarioBuilderPage() {
   const navigate = useNavigate();
-  const location = useLocation();
-  interface ScenarioState { id?: string }
-  const scenarioId = (location.state as ScenarioState | null)?.id;
+
+  const location = useLocation() as { state?: { id?: string; fresh?: boolean } };
+  const { id: scenarioId, fresh = false } = location.state ?? {};
 
 
   const {
@@ -196,27 +196,28 @@ export default function ScenarioBuilderPage() {
 
   // ── 0) Reset context when there's no scenarioId (fresh create mode)
   useEffect(() => {
-    if (scenarioId) return;
+    if (scenarioId || fresh) return;
     setActiveStep(0);
     setModelName("");
     setVertices([]);
     setControlGroups([]);
     setControlLevels([]);
     setEdges([]);
-  }, [scenarioId, setActiveStep, setModelName, setVertices, setControlGroups, setControlLevels, setEdges]);
+  }, [scenarioId, fresh, setActiveStep, setModelName, setVertices, setControlGroups, setControlLevels, setEdges]);
 
   // ── 1) Fetch existing scenario when editing
   useEffect(() => {
     if (!scenarioId) return;
+    if (fresh) return; 
     setLoading(true);
     getScenarioById(scenarioId)
       .then((data) => setScenario(data))
       .finally(() => setLoading(false));
-  }, [scenarioId]);
+  }, [scenarioId, fresh]);
 
   // ── 2) Seed context once scenario is loaded
   useEffect(() => {
-    if (!scenario) return;
+    if (!scenario || fresh) return;
     setModelName(scenario.name);
     setVertices(scenario.vertices);
     setControlGroups(scenario.control_groups);
@@ -245,7 +246,7 @@ export default function ScenarioBuilderPage() {
           url: e.url,
         }))
       );
-  }, [scenario, setModelName, setVertices, setControlGroups, setControlLevels, setEdges]);
+  }, [scenario, fresh, setModelName, setVertices, setControlGroups, setControlLevels, setEdges]);
 
   // ── 3) Show loading spinner only when fetching
   if (loading) {
@@ -259,10 +260,14 @@ export default function ScenarioBuilderPage() {
       return;
     }
     if (activeStep === steps.length - 1) {
-    console.log("👉 Builder navigating to Dashboard with id =", scenarioId);
-      navigate("/page3", {
-        state: { id: scenarioId, fresh: true },
-      });
+        console.log("👉 Builder navigating to Dashboard with id =", scenarioId);
+
+        /*  <<< replace the two lines below  >>>  */
+        const navState: { id?: string; fresh: boolean } =
+          scenarioId ? { id: scenarioId, fresh: true }   // coming back
+                     : { fresh: true };                  // brand‑new
+    
+        navigate("/page3", { state: navState });
     } else {
       setActiveStep((p) => p + 1);
     }

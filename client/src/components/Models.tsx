@@ -112,7 +112,7 @@ const Models: FC = () => {
                 </Button>
                 <Button
                   size="small"
-                  onClick={() => navigate("/page2", { state: { id: s.id } })}
+                  onClick={() => navigate("/page2",{ state: { id: s.id, fresh: true } })}
                 >
                   Edit
                 </Button>
