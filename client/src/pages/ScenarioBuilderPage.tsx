@@ -35,6 +35,7 @@ import VerticesTable from "../components/VerticesTable";
 import ControlGroupsTable from "../components/ControlGroupsTable";
 import ControlLevelsTable from "../components/ControlLevelsTable";
 import EdgesTable from "../components/EdgesTable";
+import Footer from "../components/Footer";
 
 import { useScenarioBuilder } from "../context/ScenarioBuilderContext";
 import { getScenarioById } from "../api/ScenarioClient";
@@ -369,6 +370,7 @@ export default function ScenarioBuilderPage() {
         Updated!
         </Alert>
       </Snackbar>
+      <Footer/>
     </Container>
   );
 }
