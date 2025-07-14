@@ -36,7 +36,7 @@ export default function ControlsTabs(props: ControlsTabsProps) {
 
       {tabIndex === 0 && <OptimizerTab {...props} />}
       {tabIndex === 1 && <ManualTab {...props} />}
-      {tabIndex === 2 && <ParetoTab />}
+      {tabIndex === 2 && <ParetoTab {...props} />}
       {tabIndex === 3 && <TransparencyTab />}
     </Box>
   );
