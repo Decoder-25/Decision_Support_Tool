@@ -71,6 +71,21 @@ export async function playgroundOptimise(
   return res.data;
 }
 
+/* ------------- baseline helper ---------------------------------- */
+/** Ask the optimiser to run with **zero** budget so we can compare
+    the “no controls” risk with the chosen portfolio.                */
+    export async function playgroundBaselineRisk(scenario: any): Promise<number> {
+      const body = {
+        scenario,
+        budget: 0,
+        indirect_budget: 0,
+        targets: scenario.targets ?? [],
+      };
+      const res = await optimiseApi.post<APIOptimiseResponse>("/optimise", body);
+      return res.data.max_flow_to_targets;
+    }
+    
+
 export async function optimiseSavedScenario(
   scenarioId: string,
   body: SavedOptimiseBody

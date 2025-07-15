@@ -36,6 +36,7 @@ import type { Edge as EdgeJson } from "../../types/edgesTablesTypes";
 import { playgroundOptimise } from "../../api/Optimise";
 // add this near the top
 import { buildControlGroups } from "../../utils/buildControlGroups";
+import { useOptimiser } from "../../context/OptimiserContext";   
 
 
 interface APIOptimiseResponse {
@@ -100,6 +101,7 @@ const OptimizerTab: React.FC<OptimizerTabProps> = ({
   );
   const [optimising, setOptimising] = useState(false);
   const [result, setResult] = useState<APIOptimiseResponse | null>(null);
+  const { setResult: setSharedResult } = useOptimiser();   
 
   /* ----------------- Optimise button ----------------- */
   const handleOptimise = async () => {
@@ -141,15 +143,18 @@ const OptimizerTab: React.FC<OptimizerTabProps> = ({
     console.log("▶️  Optimise payload", payload);
 
     try {
-      const res = await playgroundOptimise(payload);
-      console.log("✅ Optimise response", res);
-      setResult(res);
-    } catch (err) {
-      console.error("❌ Optimise failed", err);
-      // optional: show snackbar / toast to the user
-    } finally {
-      setOptimising(false);
-    }
+        const res = await playgroundOptimise(payload);
+    
+        /* ① local card on Optimiser tab       */
+        setResult(res);
+        /* ② shared context for every tab      */
+        setSharedResult(res);
+      } catch (err) {
+        console.error("❌ Optimise failed", err);
+      } finally {
+        setOptimising(false);
+      }
+
   };
 
   return (

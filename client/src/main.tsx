@@ -4,6 +4,7 @@ import './index.css'
 import AppRoute from './config/app-route'
 import {BrowserRouter, useRoutes } from 'react-router-dom'
 import { ScenarioBuilderProvider } from "./context/ScenarioBuilderContext";
+import { OptimiserProvider } from "./context/OptimiserContext";
 
 
 function App()
@@ -14,11 +15,12 @@ function App()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-  <ScenarioBuilderProvider>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <ScenarioBuilderProvider>
+      <OptimiserProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </OptimiserProvider>
   </ScenarioBuilderProvider>
 </StrictMode>
-  
-)
+);
