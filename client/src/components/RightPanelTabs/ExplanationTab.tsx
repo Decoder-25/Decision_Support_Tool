@@ -20,7 +20,8 @@
     
     const ExplanationTab: React.FC = () => {
       /* -------- shared optimiser result ------------------------------ */
-      const { result } = useOptimiser();
+      const { result, setBaseline: setCtxBaseline } = useOptimiser();
+
     
       /* -------- scenario tables -------------------------------------- */
       const {
@@ -60,6 +61,7 @@
           /* ① baseline (spend $0) */
           const base = await playgroundBaselineRisk(scenario);
           setBaseline(base);
+          setCtxBaseline(base);  
     
           /* ② marginal benefit (run in parallel) */
           const jobs = result.selected_controls.map(async ctrl => {

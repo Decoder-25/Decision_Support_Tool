@@ -1,267 +1,172 @@
 // src/components/OverviewBar.tsx
-
-import { Box, Typography, Button, Chip, } from "@mui/material";
+import React from "react";
+import {
+  Box, Typography, Button, Chip
+} from "@mui/material";
+import { useOptimiser } from "../context/OptimiserContext";
 
 interface OverviewBarProps {
-  modelName: string;
-  lastSaved: string;
-  onSave: () => void;
-  onBack: () => void;
-  securityScore?: number;            // 0–100
-  scoreLabel?: string;               // e.g. "Needs Improvement"
+  modelName : string;
+  lastSaved : string;
+  onSave    : () => void;
+  onBack    : () => void;
 }
 
 export default function OverviewBar({
-  modelName,
-  lastSaved,
-  onSave,
-  onBack,
-  securityScore = 80,
-  scoreLabel = "",
+  modelName, lastSaved, onSave, onBack,
 }: OverviewBarProps) {
+
+  /* pull numbers the optimiser tab published */
+  const { result, baseline } = useOptimiser();
+
+  /* 0–100 score (null ⇢ not computed yet) */
+  const securityScore = React.useMemo<number | null>(() => {
+    if (!result || !baseline || baseline === 0) return null;
+    const raw = 100 * (1 - result.max_flow_to_targets / baseline);
+    return Math.max(0, Math.min(100, Math.round(raw)));
+  }, [result, baseline]);
+
+  /* label chip text */
+  const scoreLabel =
+    securityScore == null ? "" :
+    securityScore >= 75   ? "Strong" :
+    securityScore >= 40   ? "Fair"   :
+                            "Weak";
+
+  /* helper colours */
   const getScoreColor = (score: number) => {
     if (score >= 75) return "#10b981";
     if (score >= 40) return "#f59e0b";
     return "#ef4444";
   };
-
   const getScoreGradient = (score: number) => {
-    if (score >= 75) return "linear-gradient(135deg, #10b981 0%, #059669 100%)";
-    if (score >= 40) return "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)";
-    return "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)";
+    if (score >= 75) return "linear-gradient(135deg,#10b981 0%,#059669 100%)";
+    if (score >= 40) return "linear-gradient(135deg,#f59e0b 0%,#d97706 100%)";
+    return "linear-gradient(135deg,#ef4444 0%,#dc2626 100%)";
   };
 
   return (
     <Box
       sx={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        backgroundColor: "white",
-        px: 3,
-        py: 2.5,
-        borderRadius: 2,
-        mb: 3,
-        border: "1px solid #e5e7eb",
-        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
-        transition: "all 0.2s ease-in-out",
-        "&:hover": {
-          boxShadow: "0 4px 6px rgba(0, 0, 0, 0.07)",
-        },
+        display:"flex", alignItems:"center", justifyContent:"space-between",
+        bgcolor:"white", px:3, py:2.5, borderRadius:2, mb:3,
+        border:"1px solid #e5e7eb",
+        boxShadow:"0 1px 3px rgba(0,0,0,0.05)",
+        transition:"box-shadow .2s",
+        "&:hover":{ boxShadow:"0 4px 6px rgba(0,0,0,0.07)" }
       }}
     >
-      {/* Model name + last saved */}
+
+      {/* ─── name + last‑saved ─────────────────────────────── */}
       <Box>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
-          <Typography
-            variant="overline"
-            sx={{
-              fontSize: "0.75rem",
-              fontWeight: 600,
-              color: "#6b7280",
-              letterSpacing: "0.5px",
-            }}
-          >
+        <Box sx={{ display:"flex", alignItems:"center", gap:1, mb:.5 }}>
+          <Typography variant="overline"
+            sx={{ fontSize:"0.75rem", fontWeight:600, color:"#6b7280" }}>
             MODEL NAME
           </Typography>
-          <Box
-            sx={{
-              width: 4,
-              height: 4,
-              borderRadius: "50%",
-              backgroundColor: "#d1d5db",
-            }}
-          />
+          <Box sx={{ width:4, height:4, borderRadius:"50%", bgcolor:"#d1d5db" }}/>
         </Box>
-        <Typography
-          variant="h5"
-          sx={{
-            fontWeight: 700,
-            mb: 0.5,
-            fontSize: "1.5rem",
-            fontFamily: "monospace",
-            backgroundColor: "#3b82f6",
-            color: "white",
-            px: 3,
-            py: 1,
-            borderRadius: 2,
-            display: "inline-block",
-            boxShadow: "0 2px 8px rgba(59, 130, 246, 0.2)",
-            border: "2px solid #2563eb",
-          }}
-        >
-          {modelName}
+
+        <Typography variant="h5" sx={{
+          fontWeight:700, mb:.5, fontSize:"1.5rem", fontFamily:"monospace",
+          bgcolor:"#3b82f6", color:"white", px:3, py:1, borderRadius:2,
+          display:"inline-block", border:"2px solid #2563eb",
+          boxShadow:"0 2px 8px rgba(59,130,246,.2)"
+        }}>
+          {modelName || "Untitled"}
         </Typography>
-        <Typography
-          variant="body2"
-          sx={{
-            color: "#6b7280",
-            fontSize: "0.875rem",
-            display: "flex",
-            alignItems: "center",
-            gap: 0.5,
-            mt: 1,
-          }}
-        >
-          <Box
-            component="span"
-            sx={{
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              backgroundColor: "#10b981",
-              display: "inline-block",
-            }}
-          />
-          Last saved: {lastSaved}
+
+        <Typography variant="body2" sx={{
+          mt:1, fontSize:"0.875rem", color:"#6b7280", display:"flex", gap:.5
+        }}>
+          <Box sx={{
+            width:6, height:6, borderRadius:"50%", bgcolor:"#10b981"
+          }}/>
+          Last saved:&nbsp;{lastSaved}
         </Typography>
       </Box>
 
-      {/* Modern Security Score */}
-      <Box sx={{ textAlign: "center", flex: "0 0 280px" }}>
-        <Typography
-          variant="subtitle2"
-          sx={{ 
-            color: "#6b7280", 
-            mb: 1.5, 
-            fontWeight: 600,
-            fontSize: "0.75rem",
-            letterSpacing: "0.5px",
-            textTransform: "uppercase"
-          }}
-        >
+      {/* ─── score ring ─────────────────────────────────────── */}
+      <Box
+     sx={{
+       flex:"0 0 280px",
+       display:"flex",
+       flexDirection:"column",
+       alignItems:"center",
+       textAlign:"center"
+     }}
+  >
+
+        <Typography variant="subtitle2" sx={{
+          color:"#6b7280", mb:1.5, fontWeight:600, fontSize:"0.75rem",
+          letterSpacing:".5px", textTransform:"uppercase"
+        }}>
           Overall Security Score
         </Typography>
-        
-        {/* Circular Progress Design */}
-        <Box sx={{ position: "relative", display: "inline-flex", mb: 2 }}>
-          <Box
-            sx={{
-              width: 100,
-              height: 100,
-              borderRadius: "50%",
-              background: `conic-gradient(${getScoreColor(securityScore)} ${securityScore * 3.6}deg, #f3f4f6 0deg)`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              position: "relative",
-              "&::before": {
-                content: '""',
-                position: "absolute",
-                width: 75,
-                height: 75,
-                borderRadius: "50%",
-                backgroundColor: "white",
-                boxShadow: "inset 0 2px 8px rgba(0, 0, 0, 0.1)",
-              }
-            }}
-          >
-            <Box
-              sx={{
-                position: "relative",
-                zIndex: 1,
-                textAlign: "center",
-              }}
-            >
-              <Typography 
-                variant="h4" 
-                sx={{ 
-                  fontWeight: 800, 
-                  fontSize: "1.75rem",
-                  background: getScoreGradient(securityScore),
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text",
-                  lineHeight: 1,
-                  mb: 0.5
-                }}
-              >
-                {securityScore}
-              </Typography>
-              <Typography
-                variant="caption"
-                sx={{
-                  color: "#6b7280",
-                  fontSize: "0.625rem",
-                  fontWeight: 600,
-                  letterSpacing: "0.5px"
-                }}
-              >
-                SCORE
-              </Typography>
+
+        {/* render only when we actually have numbers */}
+        {securityScore !== null ? (
+          <>
+            {/* ring */}
+            <Box sx={{ position:"relative", display:"inline-flex", mb:2 }}>
+              <Box sx={{
+                width:100, height:100, borderRadius:"50%",
+                background:`conic-gradient(${getScoreColor(securityScore)} ${securityScore*3.6}deg,#f3f4f6 0deg)`,
+                display:"flex", alignItems:"center", justifyContent:"center",
+                "&::before":{ content:'""', position:"absolute", width:75, height:75,
+                              borderRadius:"50%", bgcolor:"white",
+                              boxShadow:"inset 0 2px 8px rgba(0,0,0,.1)" }
+              }}>
+                <Box sx={{ position:"relative", zIndex:1, textAlign:"center" }}>
+                  <Typography variant="h4" sx={{
+                    fontWeight:800, fontSize:"1.75rem",
+                    background:getScoreGradient(securityScore),
+                    WebkitBackgroundClip:"text",
+                    WebkitTextFillColor:"transparent"
+                  }}>
+                    {securityScore}
+                  </Typography>
+                  <Typography variant="caption" sx={{
+                    color:"#6b7280", fontSize:"0.625rem", fontWeight:600
+                  }}>
+                    SCORE
+                  </Typography>
+                </Box>
+              </Box>
             </Box>
-          </Box>
-        </Box>
 
-        {/* Score Label Chip */}
-        {scoreLabel && (
-          <Box sx={{ mb: 1 }}>
+            {/* label chip */}
             <Chip
-              label={scoreLabel}
-              color={securityScore >= 75 ? "success" : securityScore >= 40 ? "warning" : "error"}
-              size="small"
-              sx={{ 
-                fontWeight: 600,
-                fontSize: "0.75rem",
-                height: 24,
-                borderRadius: 3,
-                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-                "& .MuiChip-label": {
-                  px: 1.5,
-                }
-              }}
-            />
-          </Box>
-        )}
-
-
+          label={scoreLabel}
+          size="small"
+          color={securityScore>=75?"success":securityScore>=40?"warning":"error"}
+          sx={{ fontWeight:600, fontSize:"0.75rem", mt:1 }}
+        />
+          </>
+        ) : (
+            <Typography variant="body2" sx={{ color:"#9ca3af", mt:4 }}>
+        — not&nbsp;calculated&nbsp;yet —
+     </Typography>
+    )}
       </Box>
 
-      {/* Back / Save buttons */}
-      <Box sx={{ display: "flex", gap: 1.5 }}>
-        <Button
-          variant="outlined"
-          onClick={onBack}
+      {/* ─── buttons ────────────────────────────────────────── */}
+      <Box sx={{ display:"flex", gap:1.5 }}>
+        <Button variant="outlined" onClick={onBack}
           sx={{
-            borderColor: "#d1d5db",
-            color: "#6b7280",
-            fontWeight: 500,
-            px: 2.5,
-            py: 1,
-            borderRadius: 1.5,
-            textTransform: "none",
-            fontSize: "0.875rem",
-            transition: "all 0.2s ease-in-out",
-            "&:hover": {
-              borderColor: "#9ca3af",
-              backgroundColor: "#f9fafb",
-              color: "#374151",
-            },
-          }}
-        >
-          ← Back to Builder
+            borderColor:"#d1d5db", color:"#6b7280", fontWeight:500,
+            textTransform:"none", px:2.5, py:1, fontSize:"0.875rem",
+            "&:hover":{ borderColor:"#9ca3af", bgcolor:"#f9fafb", color:"#374151" }
+          }}>
+          ← Back to Builder
         </Button>
-        <Button
-          variant="contained"
-          onClick={onSave}
+        <Button variant="contained" onClick={onSave}
           sx={{
-            backgroundColor: "#3b82f6",
-            color: "white",
-            fontWeight: 500,
-            px: 2.5,
-            py: 1,
-            borderRadius: 1.5,
-            textTransform: "none",
-            fontSize: "0.875rem",
-            boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-            transition: "all 0.2s ease-in-out",
-            "&:hover": {
-              backgroundColor: "#2563eb",
-              boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
-            },
-          }}
-        >
-          💾 Save Model
+            bgcolor:"#3b82f6", color:"white", fontWeight:500,
+            textTransform:"none", px:2.5, py:1, fontSize:"0.875rem",
+            "&:hover":{ bgcolor:"#2563eb" }
+          }}>
+          💾 Save Model
         </Button>
       </Box>
     </Box>
