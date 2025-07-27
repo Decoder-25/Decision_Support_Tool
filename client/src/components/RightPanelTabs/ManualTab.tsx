@@ -1,6 +1,6 @@
 // src/components/RightPanelTabs/ManualTab.tsx
 
-import React, { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Box,
   Paper,
@@ -10,8 +10,9 @@ import {
   Select,
   MenuItem,
   Divider,
+  type SelectChangeEvent,
 } from "@mui/material";
-import { Settings, Paid, Savings, Speed, Shield } from "@mui/icons-material";
+import { Settings, Paid, Savings, Speed } from "@mui/icons-material";
 
 import type { ControlGroup } from "../ControlGroupsTable";
 import type { ControlLevel } from "../ControlLevelsTable";
@@ -21,29 +22,33 @@ interface ManualTabProps {
   controlLevels: ControlLevel[];
 }
 
+// selections[g.id] is either a level number or the empty string (meaning “None”)
+type SelectionValue = number | "";
+type SelectionsMap = Record<string, SelectionValue>;
+
 export default function ManualTab({
   controlGroups,
   controlLevels,
 }: ManualTabProps) {
-  // track each group’s selected level
-  const [selections, setSelections] = useState<Record<string, number | " ">>({});
+  const [selections, setSelections] = useState<SelectionsMap>({});
 
-  // initialize to level 0 for each group
+  // initialize each group to level 0 on mount or when groups change
   useEffect(() => {
-    const init: Record<string, number> = {};
+    const init: SelectionsMap = {};
     controlGroups.forEach((g) => {
       init[g.id] = 0;
     });
     setSelections(init);
   }, [controlGroups]);
 
-  // compute totals when selections change
+  // compute totals when any selection changes
   const { totalCost, totalIndirect, totalFlow } = useMemo(() => {
     let cost = 0,
       ind = 0,
       flow = 0;
-    controlGroups.forEach((g) => {
-      const lvl = selections[g.id] ?? 0;
+
+    for (const g of controlGroups) {
+      const lvl = selections[g.id] === "" ? -1 : selections[g.id];
       const info = controlLevels.find(
         (c) => c.groupId === g.id && c.level === lvl
       );
@@ -52,7 +57,7 @@ export default function ManualTab({
         ind += info.indCost;
         flow += info.flow;
       }
-    });
+    }
     return { totalCost: cost, totalIndirect: ind, totalFlow: flow };
   }, [selections, controlGroups, controlLevels]);
 
@@ -76,42 +81,41 @@ export default function ManualTab({
           </Typography>
         </Box>
 
-        {/* Dropdowns */}
-
+        {/* Dropdowns for each group */}
         {controlGroups.map((g) => (
-        <Box key={g.id} sx={{ mb: 3 }}>
+          <Box key={g.id} sx={{ mb: 3 }}>
             <FormControl fullWidth size="small">
-            <InputLabel>{g.name}</InputLabel>
-            <Select
-                value={selections[g.id] ?? ""} // "" represents None selected
+              <InputLabel>{g.name}</InputLabel>
+              <Select
+                value={selections[g.id] ?? ""}
                 label={g.name}
-                onChange={(e) =>
-                setSelections((prev) => ({
+                onChange={(e: SelectChangeEvent<SelectionValue>) => {
+                  const val = e.target.value;
+                  setSelections((prev) => ({
                     ...prev,
-                    [g.id]: e.target.value === "" ? undefined : (e.target.value as number),
-                }))
-                }
-                sx={{
-                "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                    borderColor: "#2563eb",
-                },
+                    [g.id]: val,
+                  }));
                 }}
-            >
-        <MenuItem value="">
-          <em>None</em>
-        </MenuItem>
-        {controlLevels
-          .filter((c) => c.groupId === g.id)
-          .map((c) => (
-            <MenuItem key={c.level} value={c.level}>
-              {c.name} (Cost: {c.cost}, Indirect: {c.indCost})
-            </MenuItem>
-          ))}
-      </Select>
-    </FormControl>
-  </Box>
-))}
-
+                sx={{
+                  "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "#2563eb",
+                  },
+                }}
+              >
+                <MenuItem value="">
+                  <em>None</em>
+                </MenuItem>
+                {controlLevels
+                  .filter((c) => c.groupId === g.id)
+                  .map((c) => (
+                    <MenuItem key={c.level} value={c.level}>
+                      {c.name} (Cost: {c.cost}, Indirect: {c.indCost})
+                    </MenuItem>
+                  ))}
+              </Select>
+            </FormControl>
+          </Box>
+        ))}
       </Paper>
 
       {/* Results */}
@@ -166,10 +170,6 @@ export default function ManualTab({
           <Speed sx={{ mr: 1 }} />
           Flow Score: {totalFlow.toFixed(3)}
         </Typography>
-
-        <Divider sx={{ my: 2 }} />
-
-      
       </Paper>
     </Box>
   );

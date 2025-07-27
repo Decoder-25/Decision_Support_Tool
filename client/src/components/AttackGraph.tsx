@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+// src/components/AttackGraph.tsx
+import { useMemo, useState } from "react";
 import ReactFlow, {
   Background,
   Controls,
@@ -10,34 +11,36 @@ import ReactFlow, {
   useEdgesState,
   type Node,
   type Edge,
-} from 'reactflow';
-import dagre from '@dagrejs/dagre';
+  type EdgeProps,
+} from "reactflow";
+import * as dagre from "@dagrejs/dagre";         
 
-import 'reactflow/dist/style.css';
-import './AttackGraph.css';
+import "reactflow/dist/style.css";
+import "./AttackGraph.css";
 
-import type { Vertex }      from './VerticesTable';
-import type { Edge as Ejs } from '../types/edgesTablesTypes';
+import type { Vertex } from "./VerticesTable";
+import type { Edge as Ejs } from "../types/edgesTablesTypes";
 
 /* ─────────────────────────  palette  ───────────────────────── */
-const COL_NODE   = '#d1fae5';
-const COL_TARGET = '#fef3c7';
-const COL_LOW    = '#16a34a';
-const COL_WARN   = '#f59e0b';
-const COL_HIGH   = '#dc2626';
+const COL_NODE = "#d1fae5";
+const COL_TARGET = "#fef3c7";
+const COL_LOW = "#16a34a";
+const COL_WARN = "#f59e0b";
+const COL_HIGH = "#dc2626";
 
-const NODE_W = 120, NODE_H = 40;
-const flowColour = (f = 1) => (f <= .05 ? COL_LOW : f <= .2 ? COL_WARN : COL_HIGH);
+const NODE_W = 120,
+  NODE_H = 40;
+const flowColour = (f = 1) => (f <= 0.05 ? COL_LOW : f <= 0.2 ? COL_WARN : COL_HIGH);
 
 /* ──────────────  dagre layout helper  ────────────── */
 const runLayout = (nodes: Node[], edges: Edge[]) => {
   const g = new dagre.graphlib.Graph();
-  g.setGraph({ rankdir: 'TB', ranksep: 80, nodesep: 40 });
+  g.setGraph({ rankdir: "TB", ranksep: 80, nodesep: 40 });
   g.setDefaultEdgeLabel(() => ({}));
-  nodes.forEach(n => g.setNode(n.id, { width: NODE_W, height: NODE_H }));
-  edges.forEach(e => g.setEdge(e.source, e.target));
+  nodes.forEach((n) => g.setNode(n.id, { width: NODE_W, height: NODE_H }));
+  edges.forEach((e) => g.setEdge(e.source, e.target));
   dagre.layout(g);
-  return nodes.map(n => {
+  return nodes.map((n) => {
     const { x, y } = g.node(n.id);
     n.position = { x: x - NODE_W / 2, y: y - NODE_H / 2 };
     return n;
@@ -45,8 +48,13 @@ const runLayout = (nodes: Node[], edges: Edge[]) => {
 };
 
 /* ──────────────  custom edge with tooltip  ────────────── */
-const FlowEdge: React.FC<any> = ({
-  sourceX, sourceY, targetX, targetY, markerEnd, data
+const FlowEdge: React.FC<EdgeProps> = ({
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  markerEnd,
+  data,
 }) => {
   const [hover, setHover] = useState(false);
 
@@ -54,14 +62,14 @@ const FlowEdge: React.FC<any> = ({
   const midX = (sourceX + targetX) / 2;
   const midY = (sourceY + targetY) / 2;
 
-  /* offset tooltip 20px away in the perpendicular direction */
+  /* offset tooltip 20 px away perpendicular to the edge */
   const dx = targetX - sourceX,
-        dy = targetY - sourceY,
-        len = Math.hypot(dx, dy) || 1,
-        off = 20;
+    dy = targetY - sourceY,
+    len = Math.hypot(dx, dy) || 1,
+    off = 20;
 
-  const labelX = midX - dy / len * off;
-  const labelY = midY + dx / len * off;
+  const labelX = midX - (dy / len) * off;
+  const labelY = midY + (dx / len) * off;
 
   return (
     <>
@@ -76,7 +84,7 @@ const FlowEdge: React.FC<any> = ({
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
       />
-      {/* fat invisible hit‑area */}
+      {/* fat invisible hit-area */}
       <path
         d={path}
         stroke="transparent"
@@ -88,19 +96,21 @@ const FlowEdge: React.FC<any> = ({
 
       {hover && (
         <EdgeLabelRenderer>
-          {/* This div is rendered in the HTML overlay, so CSS coordinates work perfectly */}
           <div
             className="edge-tooltip"
             style={{
-              position: 'absolute',
-              pointerEvents: 'none',
+              position: "absolute",
+              pointerEvents: "none",
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
             }}
           >
-            <b>flow</b>: {data.flow}<br />
-            <b>edge&nbsp;flow</b>: {data.edgeFlow}<br />
-            <b>vulnerability</b>: {data.vuln || '—'}<br />
-            <b>controls</b>: {data.controls || '—'}
+            <b>flow</b>: {data.flow}
+            <br />
+            <b>edge&nbsp;flow</b>: {data.edgeFlow}
+            <br />
+            <b>vulnerability</b>: {data.vuln || "—"}
+            <br />
+            <b>controls</b>: {data.controls || "—"}
           </div>
         </EdgeLabelRenderer>
       )}
@@ -110,41 +120,58 @@ const FlowEdge: React.FC<any> = ({
 const edgeTypes = { flow: FlowEdge };
 
 /* ──────────────  component  ────────────── */
-interface Props { vertices: Vertex[]; edges: Ejs[] }
+interface Props {
+  vertices: Vertex[];
+  edges: Ejs[];
+}
 
 export default function AttackGraph({ vertices, edges }: Props) {
   /* nodes */
-  const rfNodes: Node[] = useMemo(() => vertices.map(v => ({
-    id: v.id.toString(),
-    data: { label: v.name || v.id },
-    position: { x: 0, y: 0 },
-    style: {
-      width: NODE_W, height: NODE_H, borderRadius: 6, border: '1px solid #000',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: 12, background: v.defaultTarget ? COL_TARGET : COL_NODE
-    },
-    sourcePosition: Position.Bottom,
-    targetPosition: Position.Top,
-  })), [vertices]);
+  const rfNodes: Node[] = useMemo(
+    () =>
+      vertices.map((v) => ({
+        id: v.id.toString(),
+        data: { label: v.name || v.id },
+        position: { x: 0, y: 0 },
+        style: {
+          width: NODE_W,
+          height: NODE_H,
+          borderRadius: 6,
+          border: "1px solid #000",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 12,
+          background: v.defaultTarget ? COL_TARGET : COL_NODE,
+        },
+        sourcePosition: Position.Bottom,
+        targetPosition: Position.Top,
+      })),
+    [vertices]
+  );
 
   /* edges */
-  const rfEdges: Edge[] = useMemo(() => edges.map((e, i) => {
-    const col = flowColour(e.defaultFlow);
-    return {
-      id: `e${i}`,
-      type: 'flow',
-      source: e.source.toString(),
-      target: e.target.toString(),
-      markerEnd: { type: MarkerType.ArrowClosed, color: col },
-      data: {
-        colour: col,
-        flow: e.defaultFlow ?? '',
-        edgeFlow: e.defaultFlow ?? '',
-        vuln: e.vulnerability?.name ?? '',
-        controls: (e.vulnerability?.controls || []).join(',')
-      }
-    };
-  }), [edges]);
+  const rfEdges: Edge[] = useMemo(
+    () =>
+      edges.map((e, i) => {
+        const col = flowColour(e.defaultFlow);
+        return {
+          id: `e${i}`,
+          type: "flow",
+          source: e.source.toString(),
+          target: e.target.toString(),
+          markerEnd: { type: MarkerType.ArrowClosed, color: col },
+          data: {
+            colour: col,
+            flow: e.defaultFlow ?? "",
+            edgeFlow: e.defaultFlow ?? "",
+            vuln: e.vulnerability?.name ?? "",
+            controls: (e.vulnerability?.controls || []).join(","),
+          },
+        };
+      }),
+    [edges]
+  );
 
   const initialNodes = useMemo(() => runLayout([...rfNodes], rfEdges), [rfNodes, rfEdges]);
 
@@ -152,7 +179,7 @@ export default function AttackGraph({ vertices, edges }: Props) {
   const [links, , onEdgesChange] = useEdgesState(rfEdges);
 
   return (
-    <div style={{ height: '100vh', width: '100%' }}>
+    <div style={{ height: "100vh", width: "100%" }}>
       <ReactFlow
         nodes={nodes}
         edges={links}

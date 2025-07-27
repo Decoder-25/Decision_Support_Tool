@@ -1,5 +1,5 @@
 // src/components/RightPanelTabs/OptimizerTab.tsx
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   Box,
   Paper,
@@ -28,13 +28,11 @@ import {
   Settings,
 } from "@mui/icons-material";
 
+import { playgroundOptimise } from "../../api/Optimise";
 import type { Vertex } from "../VerticesTable";
 import type { ControlGroup } from "../ControlGroupsTable";
 import type { ControlLevel } from "../ControlLevelsTable";
 import type { Edge as EdgeJson } from "../../types/edgesTablesTypes";
-
-import { playgroundOptimise } from "../../api/Optimise";
-// add this near the top
 import { buildControlGroups } from "../../utils/buildControlGroups";
 import { useOptimiser } from "../../context/OptimiserContext";   
 
@@ -56,7 +54,6 @@ interface APIOptimiseResponse {
 }
 
 interface OptimizerTabProps {
-  // If you have a saved scenario, pass its ID here:
   scenarioId?: string;
   vertices: Vertex[];
   controlGroups: ControlGroup[];
@@ -65,7 +62,6 @@ interface OptimizerTabProps {
 }
 
 const OptimizerTab: React.FC<OptimizerTabProps> = ({
-  scenarioId,
   vertices,
   controlGroups,
   controlLevels,
@@ -74,7 +70,7 @@ const OptimizerTab: React.FC<OptimizerTabProps> = ({
   // console.log("Scenario ID:", scenarioId);
   // console.log("Vertices:", vertices);
   //console.log("Control Groups:", controlGroups);
-  console.log("Control Levels:", controlLevels);
+  //console.log("Control Levels:", controlLevels);
   // console.log("Edges:", edges);
 
   const maxDirectBudget = useMemo(() => {
@@ -118,11 +114,11 @@ const OptimizerTab: React.FC<OptimizerTabProps> = ({
         edges: edges.map((e) => ({
           source: e.source,
           target: e.target,
-          default_flow: e.defaultFlow ?? (e as any).defaultFlow ?? 1,
+          default_flow: e.defaultFlow ?? 1,
           vulnerability: {
             name: e.vulnerability.name,
             controls: e.vulnerability.controls, // ["c1", "c2", …]
-            adjustment: (e.vulnerability as any).adjustment ?? {},
+            adjustment: e.vulnerability.adjustment ?? {},
           },
           url: e.url,
         })),

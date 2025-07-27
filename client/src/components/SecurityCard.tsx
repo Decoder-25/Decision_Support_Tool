@@ -1,4 +1,4 @@
-import React from "react";
+
 import { 
   Box, 
   FormControl, 
@@ -12,7 +12,19 @@ import {
   Avatar
 } from "@mui/material";
 
-function SecurityCard({ title, value,  icon, options  }) {
+interface Option {
+  value: string;
+  label: string;
+}
+
+interface SecurityCardProps {
+  title: string;
+  value: string;
+  icon: React.ReactNode;
+  options: Option[];
+}
+
+export default function SecurityCard({ title, value,  icon, options  }: SecurityCardProps) {
   return (
     <Card 
       sx={{ 
@@ -90,5 +102,3 @@ function SecurityCard({ title, value,  icon, options  }) {
     </Card>
   );
 }
-
-export default SecurityCard;

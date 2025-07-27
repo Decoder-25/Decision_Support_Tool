@@ -1,10 +1,9 @@
 // src/components/Models.tsx
-import React, { FC, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
   Container,
-  Grid,
   Card,
   CardContent,
   CardActions,
@@ -18,6 +17,7 @@ import {
   Fade,
   Pagination,
 } from "@mui/material";
+import Grid from "@mui/material/Grid"; 
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
@@ -26,7 +26,7 @@ import SearchIcon from "@mui/icons-material/SearchOutlined";
 import { listScenarios, deleteScenario } from "../api/ScenarioClient";
 import type { ScenarioSummary } from "../api/ScenarioClient";
 
-const Models: FC = () => {
+const Models = () => {
   const [scenarios, setScenarios] = useState<ScenarioSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -194,7 +194,7 @@ const Models: FC = () => {
         {/* Grid of cards */}
         <Grid container spacing={{ xs: 3, md: 4 }} sx={{ justifyContent: "center" }}>
           {paged.map((s, idx) => (
-            <Grid key={s.id} item xs={12} sm={6} md={4} lg={2.2}>
+            <Grid key={s.id} xs={12} sm={6} md={4} lg={2}>
               <Fade in timeout={300 + idx * 100}>
                 <Card
                   elevation={0}

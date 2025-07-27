@@ -1,5 +1,5 @@
 // src/components/VerticesTable.tsx
-import React, { useState, useMemo } from "react";
+import  { useState, useMemo } from "react";
 import {
   Box,
   Typography,

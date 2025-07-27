@@ -1,4 +1,3 @@
-import React from "react";
 import { 
   Card, 
   CardContent, 
@@ -8,7 +7,12 @@ import {
   LinearProgress 
 } from "@mui/material";
 
-function SecurityScoreCard({ score }) {
+interface SecurityScoreCardProps {
+  score: number;
+}
+
+
+export default function SecurityScoreCard({ score }: SecurityScoreCardProps) {
   return (
     <Card 
       sx={{ 
@@ -60,5 +64,3 @@ function SecurityScoreCard({ score }) {
     </Card>
   );
 }
-
-export default SecurityScoreCard;

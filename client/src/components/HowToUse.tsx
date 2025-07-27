@@ -1,5 +1,4 @@
 // src/components/HowToUse.tsx
-import React from "react";
 import {
   Box,
   Container,

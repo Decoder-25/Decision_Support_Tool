@@ -1,5 +1,6 @@
 // src/components/RightPanelTabs/ControlsTabs.tsx
-import React, { useState } from "react";
+import { useState } from "react";
+import type {  SyntheticEvent } from "react";
 import { Box, Tabs, Tab } from "@mui/material";
 import OptimizerTab from "./OptimizerTab";
 import ManualTab from "./ManualTab";
@@ -20,11 +21,16 @@ interface ControlsTabsProps {
 
 export default function ControlsTabs(props: ControlsTabsProps) {
   const [tabIndex, setTabIndex] = useState(0);
+
+  const handleChange = (_event: SyntheticEvent, newIndex: number) => {
+    setTabIndex(newIndex);
+  };
+
   return (
     <Box sx={{ width: "100%" }}>
       <Tabs
         value={tabIndex}
-        onChange={(_, v) => setTabIndex(v)}
+        onChange={handleChange}
         centered
         sx={{ mb: 2 }}
       >
@@ -37,7 +43,7 @@ export default function ControlsTabs(props: ControlsTabsProps) {
       {tabIndex === 0 && <OptimizerTab {...props} />}
       {tabIndex === 1 && <ManualTab {...props} />}
       {tabIndex === 2 && <ParetoTab {...props} />}
-      {tabIndex === 3 && <ExplanationTab {...props} />}
+      {tabIndex === 3 && <ExplanationTab />}
     </Box>
   );
 }

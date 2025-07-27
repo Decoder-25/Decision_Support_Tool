@@ -1,5 +1,5 @@
 // src/components/OverviewBar.tsx
-import React from "react";
+import { useMemo } from "react";
 import {
   Box, Typography, Button, Chip
 } from "@mui/material";
@@ -19,8 +19,8 @@ export default function OverviewBar({
   /* pull numbers the optimiser tab published */
   const { result, baseline } = useOptimiser();
 
-  /* 0–100 score (null ⇢ not computed yet) */
-  const securityScore = React.useMemo<number | null>(() => {
+  /* 0–100 score (null⇢not computed yet) */
+  const securityScore = useMemo<number | null>(() => {
     if (!result || !baseline || baseline === 0) return null;
     const raw = 100 * (1 - result.max_flow_to_targets / baseline);
     return Math.max(0, Math.min(100, Math.round(raw)));
@@ -158,7 +158,7 @@ export default function OverviewBar({
             textTransform:"none", px:2.5, py:1, fontSize:"0.875rem",
             "&:hover":{ borderColor:"#9ca3af", bgcolor:"#f9fafb", color:"#374151" }
           }}>
-          ← Back to Builder
+          ← Back to Builder
         </Button>
         <Button variant="contained" onClick={onSave}
           sx={{
@@ -166,7 +166,7 @@ export default function OverviewBar({
             textTransform:"none", px:2.5, py:1, fontSize:"0.875rem",
             "&:hover":{ bgcolor:"#2563eb" }
           }}>
-          💾 Save Model
+          💾SaveModel
         </Button>
       </Box>
     </Box>
