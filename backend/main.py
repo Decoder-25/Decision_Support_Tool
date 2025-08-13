@@ -5,7 +5,7 @@ from backend.routers import scenarios
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
-    title="CySecTool Decision Support Backend",
+    title="Decision Support Backend",
     description="API for Cybersecurity Investment Optimisation and Scenario Management",
     version="1.0.0"
 )
@@ -25,4 +25,4 @@ app.include_router(scenarios.router)
 
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to your CySecTool-inspired backend!"}
+    return {"message": "Welcome to your Decision support tool's backend!"}

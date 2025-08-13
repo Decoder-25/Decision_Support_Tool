@@ -95,21 +95,30 @@ function calcMaxDirectCost(model: ScenarioJson): number {
     .map((g) => Math.max(...g.levels.map((l) => l.cost)))
     .reduce((sum, max) => sum + max, 0);
 }
+function calcMaxIndirectCost(model: ScenarioJson): number {
+  return model.control_groups
+    .map((g) => Math.max(...g.levels.map((l) => l.ind_cost)))
+    .reduce((sum, max) => sum + max, 0);
+}
+
 
 /** Cast the imported component to accept two props: model & budgetMax */
 type ParetoFrontierProps = {
   model: ScenarioJson;
-  budgetMax: number;
+  maxDirectCap: number;
+  maxIndirectCap: number;
 };
+
 const TypedParetoFrontier =
   ParetoFrontierTab as unknown as React.FC<ParetoFrontierProps>;
-  
+
 /** The tab itself */
 const ParetoTab: React.FC<Props> = (tables) => {
   const scenario  = buildScenario(tables);
-  const budgetMax = calcMaxDirectCost(scenario);
-
-  return <TypedParetoFrontier model={scenario} budgetMax={budgetMax} />;
+  const maxDirectCap = calcMaxDirectCost(scenario);
+  const maxIndirectCap = calcMaxIndirectCost(scenario); 
+  return <TypedParetoFrontier model={scenario} maxDirectCap={maxDirectCap}
+  maxIndirectCap={maxIndirectCap} />;
 };
 
 export default ParetoTab;

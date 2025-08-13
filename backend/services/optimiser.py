@@ -1,6 +1,6 @@
 # backend/services/optimiser.py
 from typing import Dict, Any, List, Tuple
-from pulp import LpProblem, LpVariable, LpMinimize, LpInteger, lpSum, PULP_CBC_CMD # type: ignore
+from pulp import LpProblem, LpVariable, LpMinimize, LpInteger, lpSum, PULP_CBC_CMD 
 import math
 import copy
 from backend.services.patch_scenario import ensure_level0
@@ -52,6 +52,8 @@ def optimise_scenario(
     # Add a sink node for risk-flow evaluation
     sink = max(nodes) + 1
     nodes.append(sink)
+    SOURCE = min(nodes) 
+
     for t in targets:
         edges.append(
             {
@@ -89,35 +91,46 @@ def optimise_scenario(
         return control_lookup[c]["flow"]
 
     # ────────────────────────────────────────────────────────────────
-    # 3.  Linear-programming model 
+    # 3.  Stackelberg-dual MILP 
     # ────────────────────────────────────────────────────────────────
-    model = LpProblem("optimise_cysec_scenario", LpMinimize)
-    x    = LpVariable.dicts("x", controls, 0, 1, cat=LpInteger)
-    lam  = LpVariable.dicts("lam", nodes)
+   
+   # ──────────────────────────────────────────────────────────
 
-    eps = 1e-5
+    model = LpProblem("optimise_scenario", LpMinimize)
+
+    # keep λ free (positive or negative)
+    x   = LpVariable.dicts("x", controls, lowBound=0, upBound=1, cat=LpInteger)
+    lam = LpVariable.dicts("lam", nodes, lowBound=None)
+    EPS = 1e-5 
+
+
+    # ── objective:  minimise  (-λ_sink + λ_source)  +  ε·(direct+indirect cost)
     model += (
-        lpSum([lam[sink] - lam[min(nodes)]])
-        + eps * lpSum([x[c] * cost(c)     for c in controls])
-        + eps * lpSum([x[c] * ind_cost(c) for c in controls])
+        -lam[sink] + lam[SOURCE]
+        + EPS * lpSum(x[c] *  cost(c)     for c in controls)
+        + EPS * lpSum(x[c] * ind_cost(c)  for c in controls)
     )
 
-    # Budgets
-    model += lpSum([x[c] * cost(c)     for c in controls]) <= budget
-    model += lpSum([x[c] * ind_cost(c) for c in controls]) <= indirect_budget
+    # ── budget constraints
+    model += lpSum(x[c] *  cost(c)     for c in controls) <= budget
+    model += lpSum(x[c] * ind_cost(c)  for c in controls) <= indirect_budget
 
-    # One level per control group
-    for c in controls:
-        siblings = [c1 for c1 in controls if c1[0] == c[0]]
+    # ── at most one level per control group
+    for grp in scenario["control_groups"]:
+        gid = grp["id"]
+        siblings = [c for c in controls if c[0] == gid]
         if len(siblings) > 1:
-            model += lpSum([x[s] for s in siblings]) <= 1
+            model += lpSum(x[s] for s in siblings) <= 1
 
-    # Flow constraints
+    # ── dual feasibility constraints   λ_v − λ_u ≥ log(π_uv) + Σ x_c·log(p_c,uv)
     for e in edges:
-        src, tgt = e["source"], e["target"]
-        model += lam[tgt] - lam[src] >= math.log(pi(e)) + lpSum(
-            [x[c] * math.log(p(c, e)) for c in control_ind[(src, tgt)]]
+        u, v = e["source"], e["target"]
+        model += (
+            lam[u] - lam[v] >= math.log(pi(e))
+            + lpSum(x[c] * math.log(p(c, e)) for c in control_ind[(u, v)])
         )
+
+
 
     model.solve(PULP_CBC_CMD(msg=0))
     if model.status != 1:
@@ -129,7 +142,10 @@ def optimise_scenario(
     selected = [c for c in controls if x[c].varValue == 1]
     total_c  = sum(cost(c)     for c in selected)
     total_ic = sum(ind_cost(c) for c in selected)
-    max_flow = math.exp(model.objective.value())
+    flow_part = -lam[sink].varValue + lam[SOURCE].varValue
+    raw_flow  = math.exp(flow_part)
+    max_flow  = max(raw_flow, 1e-12)
+
 
     explanation = [
         {

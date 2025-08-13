@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardHeader,
@@ -28,25 +28,37 @@ import {
 } from "recharts";
 
 import { runPareto, type ScenarioJson, type ParetoPoint } from "../../api/Optimise";
-import { getScenarioCostCap } from "../../utils/budget";
+// import { getScenarioCostCap } from "../../utils/budget";
 
 interface Props {
   model: ScenarioJson;
+  maxDirectCap: number;
+  maxIndirectCap: number;
 }
 
-export default function ParetoFrontierTab({ model }: Props) {
+export default function ParetoFrontierTab({ model, maxDirectCap, maxIndirectCap }: Props) {
   const theme = useTheme();
-  const cap = useMemo(() => getScenarioCostCap(model), [model]);
+  // const cap = useMemo(() => getScenarioCostCap(model), [model]);
 
   const [sweep, setSweep] = useState<"direct" | "indirect">("direct");
-  const [directCap, setDirectCap] = useState(cap);
-  const [indirectCap, setIndirectCap] = useState(cap);
+  const [directCap, setDirectCap] = useState(maxDirectCap);
+  const [indirectCap, setIndirectCap] = useState(maxIndirectCap);
   const [frontier, setFrontier] = useState<ParetoPoint[]>([]);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    setDirectCap(maxDirectCap);
+  }, [maxDirectCap]);
+
+  useEffect(() => {
+    setIndirectCap(maxIndirectCap);
+  }, [maxIndirectCap]);
+
   const handleRun = async () => {
     setLoading(true);
-    const pts = await runPareto(model, directCap, indirectCap, sweep, 25);
+    const budget    = sweep === "direct"   ? directCap   : maxDirectCap;
+    const indBudget = sweep === "indirect" ? indirectCap : maxIndirectCap;
+    const pts = await runPareto(model, budget, indBudget, sweep, 25);
     setFrontier(pts);
     setLoading(false);
   };
@@ -87,7 +99,7 @@ export default function ParetoFrontierTab({ model }: Props) {
                 else setIndirectCap(val);
               }}
               min={0}
-              max={cap}
+              max={sweep === "direct" ? maxDirectCap : maxIndirectCap}
               step={1}
               valueLabelDisplay="auto"
               sx={{ color: theme.palette.primary.main }}
@@ -105,15 +117,15 @@ export default function ParetoFrontierTab({ model }: Props) {
       <Card elevation={1}>
         <CardContent sx={{ height: 360 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <ScatterChart margin={{ top: 20, right: 20, bottom: 40, left: 60 }}>
+            <ScatterChart margin={{ top: 20, right: 20, bottom: 40, left: 80 }}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis type="number" dataKey="x" domain={[0, "dataMax"]}>
                 <Label position="insideBottom" offset={-10} style={{ fill: theme.palette.text.secondary }}>
                   {sweep === "direct" ? "Cost" : "Indirect cost"}
                 </Label>
               </XAxis>
-              <YAxis type="number" dataKey="y" scale="log" domain={["dataMin", "dataMax"]}>
-                <Label angle={-90} position="insideLeft" offset={10} style={{ fill: theme.palette.text.secondary }}>
+              <YAxis type="number" dataKey="y" scale="log" domain={["dataMin", "dataMax"]} width={90} tickMargin={8}>
+                <Label angle={-90} position="insideLeft" offset={-12} style={{ fill: theme.palette.text.secondary }}>
                   Security damage
                 </Label>
               </YAxis>
