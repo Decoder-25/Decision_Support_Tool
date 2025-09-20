@@ -89,7 +89,6 @@ function buildScenario(p: Props): ScenarioJson {
   };
 }
 
-/** Compute the +20% cap */
 function calcMaxDirectCost(model: ScenarioJson): number {
   return model.control_groups
     .map((g) => Math.max(...g.levels.map((l) => l.cost)))

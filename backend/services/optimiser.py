@@ -5,12 +5,17 @@ import math
 import copy
 from backend.services.patch_scenario import ensure_level0
 
+LOG_DELTA = 1e-7
+def log_clamped(z: float) -> float:
+    return math.log(max(z, LOG_DELTA))
 
 
 def optimise_scenario(
     scenario: Dict[str, Any],
     budget: float,
-    indirect_budget: float
+    indirect_budget: float,
+    weights: Dict[str, float] | None = None,
+    normalise: bool = True  
 ) -> Dict[str, Any]:
     
     scenario = copy.deepcopy(scenario)
@@ -104,12 +109,34 @@ def optimise_scenario(
     EPS = 1e-5 
 
 
-    # ── objective:  minimise  (-λ_sink + λ_source)  +  ε·(direct+indirect cost)
-    model += (
-        -lam[sink] + lam[SOURCE]
-        + EPS * lpSum(x[c] *  cost(c)     for c in controls)
-        + EPS * lpSum(x[c] * ind_cost(c)  for c in controls)
-    )
+    # objective: weighted-sum  w_r*(-λ_sink + λ_source)
+    #                      + w_d*(direct_cost / B_dir) + w_i*(ind_cost / B_ind)
+    # (ε tie-breaker only when w_d = w_i = 0)
+    
+    risk   = -lam[sink] + lam[SOURCE]
+    cost_d = lpSum(x[c] *  cost(c)     for c in controls)
+    cost_i = lpSum(x[c] * ind_cost(c)  for c in controls)
+
+    # ---- weights & normalisation (true multi-objective when costs have non-zero weights) ----
+    if weights is None:
+        weights = {"risk": 1.0, "direct": 0.0, "indirect": 0.0}
+    w_r = float(weights.get("risk", 1.0))
+    w_d = float(weights.get("direct", 0.0))
+    w_i = float(weights.get("indirect", 0.0))
+
+    if normalise:
+        # scale costs by their caps to keep terms comparable
+        nd = budget if budget > 0 else 1.0
+        ni = indirect_budget if indirect_budget > 0 else 1.0
+        obj = w_r * risk + w_d * (cost_d / nd) + w_i * (cost_i / ni)
+    else:
+        obj = w_r * risk + w_d * cost_d + w_i * cost_i
+
+    # Only use ε tie-breaker when doing pure risk minimisation
+    if abs(w_d) < 1e-12 and abs(w_i) < 1e-12:
+        obj = obj + EPS * (cost_d + cost_i)
+
+    model += obj
 
     # ── budget constraints
     model += lpSum(x[c] *  cost(c)     for c in controls) <= budget
@@ -122,12 +149,12 @@ def optimise_scenario(
         if len(siblings) > 1:
             model += lpSum(x[s] for s in siblings) <= 1
 
-    # ── dual feasibility constraints   λ_v − λ_u ≥ log(π_uv) + Σ x_c·log(p_c,uv)
+    # dual feasibility constraints:  λ_u − λ_v ≥ log(π_uv) + Σ x_c·log(p_c,uv)
     for e in edges:
         u, v = e["source"], e["target"]
         model += (
-            lam[u] - lam[v] >= math.log(pi(e))
-            + lpSum(x[c] * math.log(p(c, e)) for c in control_ind[(u, v)])
+            lam[u] - lam[v] >= log_clamped(pi(e))
+            + lpSum(x[c] * log_clamped(p(c, e)) for c in control_ind[(u, v)])
         )
 
 

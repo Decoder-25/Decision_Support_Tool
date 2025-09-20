@@ -10,12 +10,11 @@ from backend.tests.test_case_study_khouzani import _build_case_study
 
 
 @pytest.mark.benchmark(
-    min_rounds=20,          # try to gather at least 20 samples
-    warmup=False,           # warm-up disabled (pytest-benchmark default)
+    min_rounds=20,          
+    warmup=False,           
 )
 def test_singhal_case_benchmark(benchmark):
     scenario = _build_case_study()
-    # We benchmark the *call*, passing fixed budgets that enable all controls.
     benchmark(
         optimise_scenario,
         scenario,

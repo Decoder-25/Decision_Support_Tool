@@ -18,11 +18,11 @@ def ensure_level0(scenario: Dict[str, Any]) -> Dict[str, Any]:
         { level:0 , name:"None", cost:0, ind_cost:0, flow:1 }
     Keeps levels sorted by `level`.
     """
-    s = copy.deepcopy(scenario)          # DON'T mutate caller’s dict
+    s = copy.deepcopy(scenario)          
 
     for g in s.get("control_groups", []):
         if any(lvl.get("level") == 0 for lvl in g["levels"]):
-            continue                        # already has level 0
+            continue                        
 
         log.debug("Adding level‑0 to group %s", g["id"])
         g["levels"].insert(0, {
@@ -32,7 +32,7 @@ def ensure_level0(scenario: Dict[str, Any]) -> Dict[str, Any]:
             "ind_cost": 0.0,
             "flow":  1.0
         })
-        # make sure levels are sorted
+        
         g["levels"].sort(key=lambda l: l["level"])
 
     return s

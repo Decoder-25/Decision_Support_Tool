@@ -2,7 +2,7 @@
 import {
   Box,
   Container,
-  Grid,
+  Grid, 
   Typography,
   Stack,
   useTheme,
@@ -68,13 +68,13 @@ const HowToUse = () => {
           variant="body1"
           sx={{ color: "text.secondary", mb: 6 }}
         >
-          A quick guide—four easy steps and you’re ready to analyse.
+          A quick guide—four easy steps and you're ready to analyse.
         </Typography>
 
         {/* 2×2 grid */}
         <Grid container spacing={{ xs: 4, md: 6 }}>
           {steps.map(({ Icon, title, desc }, i) => (
-            <Grid key={title} item xs={12} md={6}>
+            <Grid key={title} size={{ xs: 12, md: 6 }}>
               <Stack direction="row" spacing={2.5} alignItems="flex-start">
                 <Box
                   sx={{
@@ -110,7 +110,7 @@ const HowToUse = () => {
           sx={{
             mt: 10,
             position: "relative",
-            pt: "56.25%", // 16:9
+            pt: "56.25%",
             borderRadius: 3,
             overflow: "hidden",
             boxShadow: "0 8px 30px rgba(0,0,0,0.08)",
@@ -119,7 +119,7 @@ const HowToUse = () => {
         >
           <Box
             component="iframe"
-            src="" // ← add YouTube embed when ready
+            src="" // YouTube embed
             title="Quick tutorial"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen

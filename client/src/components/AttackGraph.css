@@ -13,6 +13,6 @@
   font-size:12px;
   line-height:1.35;
   color:#0f172a;
-  pointer-events:none;    /* avoid stealing mouse */
+  pointer-events:none;    
 }
 .edge-tooltip b{ color:#0ea5e9; font-weight:500 }

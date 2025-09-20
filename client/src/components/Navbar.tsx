@@ -5,7 +5,7 @@ import { Link, useLocation } from "react-router-dom";
 
 const LINKS = [
   { label: "Home",      path: "/page1" },
-  { label: "Models",    path: "/page1" }, // same route, section changes on scroll
+  { label: "Models",    path: "/page1" }, 
   { label: "Builder",   path: "/page2" },
   { label: "Dashboard", path: "/page3" },
 ];
@@ -35,7 +35,7 @@ export default function Navbar() {
 
     const hero   = document.getElementById("hero-section");
     const models = document.getElementById("models-section");
-    if (!hero || !models) return;                           // nothing to observe
+    if (!hero || !models) return;                           
 
     const io = new IntersectionObserver(
       (entries) => {

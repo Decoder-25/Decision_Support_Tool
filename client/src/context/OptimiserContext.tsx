@@ -3,10 +3,10 @@ import type { APIOptimiseResponse } from "../api/Optimise";
 
 /* ---------- public shape ----------------------------------- */
 interface CtxShape {
-  result   : APIOptimiseResponse | null;   // last optimiser run
+  result   : APIOptimiseResponse | null;  
   setResult: (r: APIOptimiseResponse | null) => void;
 
-  baseline : number | null;                // “risk with no controls” (0‑budget run)
+  baseline : number | null;               
   setBaseline : (n: number | null) => void;
 }
 

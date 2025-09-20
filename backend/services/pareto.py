@@ -6,7 +6,7 @@ Generate a Pareto frontier for a scenario by repeatedly calling
 from typing import Any, Dict, List, Tuple
 import copy
 
-from .optimiser import optimise_scenario            # local optimiser
+from .optimiser import optimise_scenario            
 from backend.services.patch_scenario import ensure_level0
 
 
@@ -32,7 +32,7 @@ def _dominates(a: Dict[str, Any],
     return (
         axis_a <= axis_b and
         risk_a <= risk_b and
-        (axis_a < axis_b or risk_a < risk_b)     # at least one strictly better
+        (axis_a < axis_b or risk_a < risk_b)     
     )
 
 
@@ -50,15 +50,14 @@ def generate_pareto_frontier(
 
     # ── decide which budget axis we keep fixed / sweep ─────────────────────
     # decide which axis we sweep
-    if max_budget == 0 and max_indirect_budget > 0:    # indirect-cost frontier
+    if max_budget == 0 and max_indirect_budget > 0:    
         sweep_direct = False
-        eps_steps = [max_indirect_budget * i / (n_points - 1)     # ← 25 values
+        eps_steps = [max_indirect_budget * i / (n_points - 1)    
                     for i in range(n_points)]
-    else:                                              # direct-cost frontier
-        sweep_direct = True
-        eps_steps = [max_budget * i / (n_points - 1)              # ← 25 values
+    else:                                              
+        eps_steps = [max_budget * i / (n_points - 1)              
                     for i in range(n_points)]
-            # 0,1,2,…,cap
+            
 
     # ── run optimiser for every ε cap on the swept axis ────────────────────
     raw: List[Dict[str, Any]] = []

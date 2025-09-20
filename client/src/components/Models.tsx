@@ -191,10 +191,10 @@ const Models = () => {
           />
         </Box>
 
-        {/* Grid of cards */}
+        {/* Grid of cards - Updated for MUI v7 */}
         <Grid container spacing={{ xs: 3, md: 4 }} sx={{ justifyContent: "center" }}>
           {paged.map((s, idx) => (
-            <Grid key={s.id} xs={12} sm={6} md={4} lg={2}>
+            <Grid key={s.id} size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
               <Fade in timeout={300 + idx * 100}>
                 <Card
                   elevation={0}

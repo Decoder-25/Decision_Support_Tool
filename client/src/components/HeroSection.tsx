@@ -149,8 +149,6 @@ export default function HeroSection({ onCreateNew }: HeroSectionProps) {
             fontWeight: 700,
             borderRadius: 3,
             textTransform: "none",
-
-            // bright white CTA
             color: "#6a5af9",
             backgroundColor: "#ffffff",
             boxShadow: "0 4px 20px rgba(0,0,0,0.1)",

@@ -1,5 +1,17 @@
+# backend/database.py
+import os
 from pymongo import MongoClient
+from dotenv import load_dotenv
 
-MONGODB_URL = "mongodb://localhost:27017"
-client = MongoClient(MONGODB_URL)
+
+load_dotenv()
+
+
+MONGODB_URI = os.getenv("MONGODB_URI")
+
+if not MONGODB_URI:
+    raise ValueError("MONGODB_URI not found in environment variables")
+
+client = MongoClient(MONGODB_URI)
+
 db = client["cyberdb"]

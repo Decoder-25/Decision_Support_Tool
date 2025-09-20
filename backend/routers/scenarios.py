@@ -22,9 +22,7 @@ router = APIRouter(
     tags=["scenarios"]
 )
 
-# Helper: Convert MongoDB document to Pydantic model
 def doc_to_scenario(doc) -> Scenario:
-    # Remove MongoDB's _id (or convert to string if you want to keep)
     doc = dict(doc)
     doc.pop('_id', None)
     return Scenario(**doc)
@@ -79,12 +77,12 @@ def delete_scenario(id: str):
     return {"message": "Scenario deleted successfully."}
 
 
-# ─── Pareto frontier (playground, no DB) ─────────────────────────────
+# Pareto frontier (playground, no DB) 
 class PlaygroundParetoRequest(BaseModel):
     scenario: Scenario
     max_budget: float
     max_indirect_budget: float = 0.0
-    points: int = 25     # number of ε steps (default 25)
+    points: int = 25    
 
 @router.post(
     "/pareto",
@@ -112,7 +110,7 @@ def pareto_playground(body: PlaygroundParetoRequest):
     return ParetoFrontierResponse(status="ok", frontier=points)
 
 
-# ─── Playground optimisation (no DB write) ────────────────────────────────
+#Playground optimisation (no DB write)
 class PlaygroundOptimiseRequest(BaseModel):
     scenario: Scenario
     budget: float
@@ -133,7 +131,7 @@ def optimise_playground(req: PlaygroundOptimiseRequest):
     return optimise_scenario(scen, req.budget, req.indirect_budget)
 
 
-# ─── Optimise a saved scenario (DB read, optional target override) ───────
+# Optimise a saved scenario (DB read, optional target override) 
 class OptimiseRequest(BaseModel):
     budget: float
     indirect_budget: float

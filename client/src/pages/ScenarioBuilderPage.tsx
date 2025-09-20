@@ -262,11 +262,9 @@ export default function ScenarioBuilderPage() {
     }
     if (activeStep === steps.length - 1) {
         console.log("👉 Builder navigating to Dashboard with id =", scenarioId);
-
-        /*  <<< replace the two lines below  >>>  */
         const navState: { id?: string; fresh: boolean } =
-          scenarioId ? { id: scenarioId, fresh: true }   // coming back
-                     : { fresh: true };                  // brand‑new
+          scenarioId ? { id: scenarioId, fresh: true }   
+                     : { fresh: true };                  
     
         navigate("/page3", { state: navState });
     } else {

@@ -16,7 +16,6 @@ export default function HomePage() {
       <Navbar />
 
       {/* ── Hero ──────────────────────────────────────────────── */}
-      {/* Give the section an id so Navbar can detect it */}
       <Box id="hero-section">
         <HeroSection onCreateNew={() => navigate("/page2")} />
       </Box>

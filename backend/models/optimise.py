@@ -1,6 +1,6 @@
 # backend/models/optimise.py
 
-from pydantic import BaseModel # type: ignore
+from pydantic import BaseModel 
 from typing import List
 
 class ControlSelection(BaseModel):

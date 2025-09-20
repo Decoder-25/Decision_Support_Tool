@@ -44,7 +44,5 @@ def make_random_scenario(n_vertices=50, n_controls=10):
 ])
 def test_optimiser_scaling(benchmark, nv, nc):
     scen = make_random_scenario(n_vertices=nv, n_controls=nc)
-    # benchmark it
     res = benchmark(lambda: optimise_scenario(scen, budget=nc, indirect_budget=0))
-    # sanity check
     assert res["status"] == "ok"

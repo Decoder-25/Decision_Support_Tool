@@ -10,7 +10,7 @@ export default function Footer() {
         mt: 6,
         py: 3,
         width: "100%",
-        background: "rgba(245,247,250,0.98)", // matches your page bg
+        background: "rgba(245,247,250,0.98)", 
         borderTop: "1px solid #e5eaf2",
         textAlign: "center",
         fontSize: "1rem",

@@ -27,13 +27,13 @@ interface ControlGroup {
    
 
 export function getScenarioCostCap(scenario: Scenario | null | undefined): number {
-    if (!scenario?.control_groups?.length) return 10;     // safe fallback
+    if (!scenario?.control_groups?.length) return 10;     
   
     const maxPerGroup = scenario.control_groups.map(group =>
       Math.max(...group.levels.map(level => level.cost ?? 0))
     );
   
     const total = maxPerGroup.reduce((sum, val) => sum + val, 0);
-    return Math.ceil(total * 1.2);   // +20% head‑room for the slider
+    return Math.ceil(total * 1.2);  
   }
   

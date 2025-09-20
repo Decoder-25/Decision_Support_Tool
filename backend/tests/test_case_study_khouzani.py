@@ -90,7 +90,6 @@ def test_tight_indirect_budget():
     assert "ScDb" not in chosen, "DB patch should be skipped (too expensive)"
     assert {"ScW", "ScS"} <= chosen, "Workstation & browser patches expected"
 
-    # Risk can’t be zero because DB patch missing: expect ≥ 1e-6
     assert res["max_flow_to_targets"] <= 1e-6
 
 
@@ -105,5 +104,4 @@ def test_relaxed_indirect_budget():
     chosen = {c["group_id"] for c in res["selected_controls"]}
     assert {"ScW", "ScS", "ScDb"} <= chosen, "All patches should be selected"
 
-    # All edges mitigated → residual risk ≈ (1e-6)^2  ≈ 1e-12
     assert res["max_flow_to_targets"] < 1e-9

@@ -140,10 +140,7 @@ const OptimizerTab: React.FC<OptimizerTabProps> = ({
 
     try {
         const res = await playgroundOptimise(payload);
-    
-        /* ① local card on Optimiser tab       */
         setResult(res);
-        /* ② shared context for every tab      */
         setSharedResult(res);
       } catch (err) {
         console.error("❌ Optimise failed", err);

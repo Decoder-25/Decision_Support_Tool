@@ -47,7 +47,6 @@ export default function ExplanationTab() {
         controls: e.vulnerability.controls,
         adjustment: e.vulnerability.adjustment ?? {},
       },
-      // url is optional in our ScenarioJson
     })),
     targets: vertices.filter((v) => v.defaultTarget).map((v) => v.id),
     targets_inclusion: {},
@@ -71,7 +70,6 @@ export default function ExplanationTab() {
       // 2) for each chosen control, zero out its levels and re‐optimise
       type JobKey = `${string}-${number}`;
       const jobs = result.selected_controls.map(async (ctrl) => {
-        // preserve all fields by casting back to the full ScenarioJson
         const scen = structuredClone(scenario) as ScenarioJson;
 
         const g = scen.control_groups.find((g) => g.id === ctrl.group_id);
