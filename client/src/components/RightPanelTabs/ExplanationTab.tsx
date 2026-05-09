@@ -7,7 +7,7 @@ import {
   Chip,
   CircularProgress,
   Stack,
-  Tooltip,
+
   Typography,
 } from "@mui/material";
 import {
@@ -67,7 +67,7 @@ export default function ExplanationTab() {
       setBaseline(baseRisk);
       setCtxBaseline(baseRisk);
 
-      // 2) for each chosen control, zero out its levels and re‐optimise
+      // 2) for each chosen control, zero out its levels and re‐optimise with the SAME budget
       type JobKey = `${string}-${number}`;
       const jobs = result.selected_controls.map(async (ctrl) => {
         const scen = structuredClone(scenario) as ScenarioJson;
@@ -77,8 +77,9 @@ export default function ExplanationTab() {
 
         const res = await playgroundOptimise({
           scenario: scen,
-          budget: 1e9,
-          indirect_budget: 1e9,
+          // FIX: Use the actual money spent, not 1 billion dollars!
+          budget: result.total_cost, 
+          indirect_budget: result.total_indirect_cost,
           targets: scen.targets,
         });
         return [`${ctrl.group_id}-${ctrl.level}` as JobKey, res.max_flow_to_targets] as const;
@@ -129,46 +130,62 @@ export default function ExplanationTab() {
       {result.selected_controls.map((ctrl) => {
         const key = `${ctrl.group_id}-${ctrl.level}`;
         const offRisk = deltas[key] ?? baseline!;
-        const delta = offRisk - result.max_flow_to_targets;
-        const factor = offRisk / result.max_flow_to_targets;
+        
+        // FIX: Clean up the math logic
+        const delta = Math.max(0, offRisk - result.max_flow_to_targets); 
+        const factor = result.max_flow_to_targets > 0 ? (offRisk / result.max_flow_to_targets) : 0;
+        
+        // FIX: Calculate hits properly from an Array
         const hits = edges.filter((e) =>
-          Object.keys(e.vulnerability?.controls ?? {}).includes(ctrl.group_id)
+          (e.vulnerability?.controls || []).includes(ctrl.group_id)
         ).length;
-        const efficiency = ctrl.cost > 0 ? delta / ctrl.cost : undefined;
+        
+        // Convert the decimal risk to a percentage, then divide by thousands of dollars spent
+        const efficiency = ctrl.cost > 0 ? ((delta * 100) / (ctrl.cost / 1000)) : undefined;
 
         return (
-          <Accordion key={key} disableGutters sx={{ mb: 1, borderRadius: 2, "&:before": { display: "none" } }}>
+          <Accordion key={key} disableGutters sx={{ mb: 1, borderRadius: 2, "&:before": { display: "none" }, border: "1px solid #e5e7eb" }}>
             <AccordionSummary expandIcon={<ExpandIcon />}>
               <Shield sx={{ mr: 1, color: "#059669" }} />
-              <Typography>
+              <Typography fontWeight={500}>
                 {ctrl.group_name} – {ctrl.level_name}
               </Typography>
             </AccordionSummary>
-            <AccordionDetails sx={{ pt: 0 }}>
-              <Stack spacing={0.5}>
-                <Typography variant="body2">
-                  <Paid fontSize="inherit" sx={{ mr: 0.5 }} />
-                  Cost {ctrl.cost}
-                </Typography>
-                <Typography variant="body2">
-                  <TrendingDown fontSize="inherit" sx={{ mr: 0.5 }} />
-                  Flow now {ctrl.flow}
-                </Typography>
-                <Tooltip title="If you removed this control">
-                  <Typography variant="body2" sx={{ display: "flex", alignItems: "center" }}>
-                    <TrendingUp fontSize="inherit" sx={{ mr: 0.5, color: "#dc2626" }} />
-                    Risk would jump to {offRisk.toFixed(2)} (≈ {factor.toFixed(1)}×, Δ {delta.toFixed(2)})
-                  </Typography>
-                </Tooltip>
-                <Typography variant="body2">
-                  • Blocks <strong>{hits}</strong> attack path{hits !== 1 && "s"}
+            <AccordionDetails sx={{ pt: 0, pb: 2 }}>
+              <Stack spacing={1}>
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                    <Typography variant="body2" sx={{ display: "flex", alignItems: "center" }}>
+                    <Paid fontSize="inherit" sx={{ mr: 0.5, color: "#0284c7" }} />
+                    Cost: ${ctrl.cost}
+                    </Typography>
+                    <Typography variant="body2" sx={{ display: "flex", alignItems: "center" }}>
+                    <TrendingDown fontSize="inherit" sx={{ mr: 0.5, color: "#059669" }} />
+                    Flow reduced to: {ctrl.flow}
+                    </Typography>
+                </Box>
+                
+                <Box sx={{ p: 1.5, bgcolor: "#fef2f2", borderRadius: 1, border: "1px solid #fecaca" }}>
+                    <Typography variant="body2" sx={{ display: "flex", alignItems: "center", fontWeight: 500, color: "#991b1b" }}>
+                        <TrendingUp fontSize="inherit" sx={{ mr: 0.5 }} />
+                        If we didn't buy this control:
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: "#7f1d1d", mt: 0.5, ml: 2 }}>
+                        Network risk would jump to <strong>{offRisk.toFixed(2)}</strong> (an increase of {delta.toFixed(2)}). 
+                        We would be {factor.toFixed(1)}x more vulnerable!
+                    </Typography>
+                </Box>
+
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  • Successfully blocks <strong>{hits}</strong> unique attack path{hits !== 1 && "s"} in the graph.
                 </Typography>
                 {efficiency !== undefined && (
-                  <Chip
-                    size="small"
-                    label={`Δ ${delta.toFixed(2)} / $${ctrl.cost} = ${efficiency.toFixed(2)}`}
-                    sx={{ bgcolor: "#f0fdfa", color: "#047857" }}
-                  />
+                  <Box sx={{ mt: 1.5 }}>
+                    <Chip
+                      size="small"
+                      label={`Cost Efficiency: ${efficiency.toFixed(1)}% risk reduction per $1k spent`}
+                      sx={{ bgcolor: "#f0fdfa", color: "#047857", fontWeight: 500 }}
+                    />
+                  </Box>
                 )}
               </Stack>
             </AccordionDetails>

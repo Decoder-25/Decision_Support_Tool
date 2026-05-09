@@ -196,32 +196,49 @@ export default function ScenarioBuilderPage() {
   const [toastOpen, setToastOpen] = useState(false);
 
   // ── 0) Reset context when there's no scenarioId (fresh create mode)
+  // ── 0) Clear the Backpack IMMEDIATELY on load
+  // If we are creating a new scenario (no ID) OR if the user wants a 'fresh' start,
+  // we must empty the old data immediately so we don't see "ghosts".
   useEffect(() => {
-    if (scenarioId || fresh) return;
-    setActiveStep(0);
-    setModelName("");
-    setVertices([]);
-    setControlGroups([]);
-    setControlLevels([]);
-    setEdges([]);
+    if (!scenarioId || fresh) {
+      setActiveStep(0);
+      setModelName("");
+      setVertices([]);
+      setControlGroups([]);
+      setControlLevels([]);
+      setEdges([]);
+      setScenario(null); // Clear the local scenario state too!
+    }
   }, [scenarioId, fresh, setActiveStep, setModelName, setVertices, setControlGroups, setControlLevels, setEdges]);
 
   // ── 1) Fetch existing scenario when editing
+  // If we DO have an ID, and it's NOT a fresh start, fetch the data.
   useEffect(() => {
-    if (!scenarioId) return;
-    if (fresh) return; 
+    if (!scenarioId || fresh) return; 
+    
     setLoading(true);
     getScenarioById(scenarioId)
-      .then((data) => setScenario(data))
+      .then((data) => {
+        setScenario(data);
+      })
       .finally(() => setLoading(false));
   }, [scenarioId, fresh]);
 
   // ── 2) Seed context once scenario is loaded
   useEffect(() => {
+    // Only run this if we actually fetched a scenario from the database
     if (!scenario || fresh) return;
+    
     setModelName(scenario.name);
-    setVertices(scenario.vertices);
+    setVertices(
+      scenario.vertices.map((v) => ({
+        ...v, // Keep any other properties
+        defaultTarget: Array.isArray(scenario.targets) && scenario.targets.some(t => String(t) === String(v.id)),
+      }))
+    );
     setControlGroups(scenario.control_groups);
+    
+    // Flatten control levels
     setControlLevels(
       scenario.control_groups.flatMap((g) =>
         g.levels.map((lvl) => ({
@@ -234,21 +251,23 @@ export default function ScenarioBuilderPage() {
         }))
       )
     );
+    
+    // Format edges
     setEdges(
-        scenario.edges.map(e => ({
-          source:      e.source,
-          target:      e.target,
-          defaultFlow: e.default_flow,
-          vulnerability: {
-            name:        e.vulnerability.name,
-            controls:    e.vulnerability.controls,
-            adjustment:  e.vulnerability.adjustment,
-          },
-          url: e.url,
-        }))
-      );
+      scenario.edges.map((e) => ({
+        source: e.source,
+        target: e.target,
+        defaultFlow: e.default_flow,
+        vulnerability: {
+          name: e.vulnerability.name,
+          controls: e.vulnerability.controls,
+          adjustment: e.vulnerability.adjustment,
+        },
+        url: e.url,
+      }))
+    );
   }, [scenario, fresh, setModelName, setVertices, setControlGroups, setControlLevels, setEdges]);
-
+  
   // ── 3) Show loading spinner only when fetching
   if (loading) {
     return <div>Loading…</div>;

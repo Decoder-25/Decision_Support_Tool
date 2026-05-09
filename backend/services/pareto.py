@@ -54,7 +54,8 @@ def generate_pareto_frontier(
         sweep_direct = False
         eps_steps = [max_indirect_budget * i / (n_points - 1)    
                     for i in range(n_points)]
-    else:                                              
+    else:  
+        sweep_direct = True                                            
         eps_steps = [max_budget * i / (n_points - 1)              
                     for i in range(n_points)]
             

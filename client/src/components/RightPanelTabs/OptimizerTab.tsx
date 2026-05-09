@@ -1,5 +1,5 @@
 // src/components/RightPanelTabs/OptimizerTab.tsx
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Box,
   Paper,
@@ -95,6 +95,14 @@ const OptimizerTab: React.FC<OptimizerTabProps> = ({
   const [selectedTargets, setSelectedTargets] = useState<number[]>(() =>
     vertices.filter((v) => v.defaultTarget).map((v) => v.id)
   );
+
+  useEffect(() => {
+    const newTargets = vertices
+      .filter((v) => v.defaultTarget)
+      .map((v) => v.id);
+      
+    setSelectedTargets(newTargets);
+  }, [vertices]); 
   const [optimising, setOptimising] = useState(false);
   const [result, setResult] = useState<APIOptimiseResponse | null>(null);
   const { setResult: setSharedResult } = useOptimiser();   

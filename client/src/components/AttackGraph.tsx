@@ -1,5 +1,5 @@
 // src/components/AttackGraph.tsx
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import ReactFlow, {
   Background,
   Controls,
@@ -9,6 +9,7 @@ import ReactFlow, {
   Position,
   useNodesState,
   useEdgesState,
+  BackgroundVariant,
   type Node,
   type Edge,
   type EdgeProps,
@@ -175,8 +176,16 @@ export default function AttackGraph({ vertices, edges }: Props) {
 
   const initialNodes = useMemo(() => runLayout([...rfNodes], rfEdges), [rfNodes, rfEdges]);
 
-  const [nodes, , onNodesChange] = useNodesState(initialNodes);
-  const [links, , onEdgesChange] = useEdgesState(rfEdges);
+  // 1. Grab the setter functions (setNodes, setEdges)
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [links, setEdges, onEdgesChange] = useEdgesState(rfEdges);
+
+  // 2. Add the Magic Watcher!
+  useEffect(() => {
+    // Whenever the data from the API calculation changes, force ReactFlow to update!
+    setNodes(initialNodes);
+    setEdges(rfEdges);
+  }, [initialNodes, rfEdges, setNodes, setEdges]);
 
   return (
     <div style={{ height: "100vh", width: "100%" }}>
@@ -191,7 +200,7 @@ export default function AttackGraph({ vertices, edges }: Props) {
       >
         <MiniMap nodeColor={() => COL_NODE} pannable />
         <Controls position="bottom-left" />
-        <Background variant="lines" gap={24} color="#e5e7eb" />
+        <Background variant={BackgroundVariant.Lines} gap={24} color="#e5e7eb" />
       </ReactFlow>
     </div>
   );

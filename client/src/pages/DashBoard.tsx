@@ -55,8 +55,8 @@ export default function DashboardPage() {
           scen.vertices.map((v) => ({
             id: v.id,
             name: v.name,
-            defaultTarget:
-              Array.isArray(scen.targets) && scen.targets.includes(v.id),
+            // Force both to strings to guarantee they match!
+            defaultTarget: Array.isArray(scen.targets) && scen.targets.some(t => String(t) === String(v.id)),
           }))
         );
 
@@ -134,7 +134,8 @@ export default function DashboardPage() {
   const handleBack = () => {
     navigate("/page2", {
       state: {
-        id: currentId, fresh
+        id: currentId, 
+        fresh: false
       },
     });
   };

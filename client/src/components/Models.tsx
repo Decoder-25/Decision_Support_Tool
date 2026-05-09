@@ -255,7 +255,7 @@ const Models = () => {
                     </Tooltip>
                     <Tooltip title="Edit" arrow>
                       <IconButton
-                        onClick={() => navigate("/page2", { state: { id: s.id, fresh: true } })}
+                        onClick={() => navigate("/page2", { state: { id: s.id } })}
                         sx={{
                           color: "text.secondary",
                           "&:hover": {
